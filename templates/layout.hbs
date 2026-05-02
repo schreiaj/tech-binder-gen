@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{name}}</title>
+  <link rel="stylesheet" href="assets/css/notebook.css">
+</head>
+<body>
+  <header class="notebook-header">
+    <div class="header-logo">
+      {{#if logo}}
+        <img src="{{logo}}" alt="{{name}}" class="team-logo">
+      {{/if}}
+      <span class="logo-text">
+        <strong>{{logoWordmark}}</strong>
+        <span class="logo-divider">|</span>
+        <span class="logo-year">{{year}}</span> BINDER
+      </span>
+    </div>
+    <nav class="chapter-nav">
+      {{#each headers}}
+        <a href="#chapter-{{@index}}" class="nav-link">{{title}}</a>
+      {{/each}}
+    </nav>
+  </header>
+
+  <main class="notebook-main">
+    <div class="scroll-pane">
+      {{#each headers}}
+        <div class="notebook-chapter" id="chapter-{{@index}}">
+          <div class="chapter-title-card">
+            {{#if ../teamLabel}}<p class="chapter-eyebrow">{{../teamLabel}}</p>{{/if}}
+            <h2>{{title}}</h2>
+            {{#if description}}<p class="chapter-description">{{description}}</p>{{/if}}
+          </div>
+          {{#each sections}}
+            {{> section}}
+          {{/each}}
+        </div>
+      {{/each}}
+    </div>
+
+    <div class="viewer-pane">
+      <div class="viewer-wrapper">
+        <notebook-viewer id="viewer" src="{{model}}"></notebook-viewer>
+        <div class="annotations-overlay" id="annotations-overlay"></div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="/src/main.js"></script>
+  <script type="module" src="/vendor/datastar.js"></script>
+</body>
+</html>

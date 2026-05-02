@@ -1,0 +1,586 @@
+<!doctype html>
+<html>
+    <head>
+        <title>GLTF Viewer - Realistic, Rally & Blueprint</title>
+        <style>
+            body {
+                margin: 0;
+                overflow: hidden;
+            }
+            .ui-panel {
+                position: absolute;
+                z-index: 10;
+                padding: 15px;
+                background: rgba(255, 255, 255, 0.95);
+                border-bottom-right-radius: 8px;
+                font-family: sans-serif;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                max-width: 300px;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+            }
+            .separator {
+                height: 1px;
+                background: #ccc;
+                width: 100%;
+            }
+            #nodeList {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+                max-height: 250px;
+                overflow-y: auto;
+                font-size: 13px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                background: white;
+            }
+            #nodeList li {
+                padding: 6px 8px;
+                border-bottom: 1px solid #f0f0f0;
+                cursor: pointer;
+                transition:
+                    background 0.1s,
+                    color 0.1s;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            #nodeList li:last-child {
+                border-bottom: none;
+            }
+            #nodeList li:hover {
+                background: #f5f5f5;
+            }
+            #nodeList li.active {
+                background: #e3f2fd;
+                color: #0d47a1;
+                font-weight: bold;
+            }
+            .input-group {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                font-size: 14px;
+            }
+            .input-group input[type="number"] {
+                width: 40px;
+                padding: 2px 4px;
+            }
+            select {
+                padding: 4px 8px;
+                font-size: 14px;
+                width: 100%;
+            }
+            .hint-text {
+                font-size: 11px;
+                color: #666;
+                margin-top: -8px;
+                font-style: italic;
+            }
+        </style>
+        <script type="importmap">
+            {
+                "imports": {
+                    "three": "https://cdn.jsdelivr.net/npm/three@0.136.0/build/three.module.js",
+                    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.136.0/examples/jsm/"
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <div class="ui-panel">
+            <div>
+                <strong>Drop GLTF/GLB here:</strong><br />
+                <input
+                    type="file"
+                    id="fileInput"
+                    accept=".gltf,.glb"
+                    style="margin-top: 8px"
+                />
+            </div>
+
+            <div class="separator"></div>
+
+            <div>
+                <strong>Render Style:</strong>
+                <select id="styleSelect" style="margin-top: 5px">
+                    <option value="realistic">Realistic (True Glass)</option>
+                    <option value="rally">Art of Rally (Bloom + AO)</option>
+                    <option value="blueprint">Blueprint (Technical CAD)</option>
+                </select>
+            </div>
+
+            <label
+                style="
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                "
+            >
+                <input type="checkbox" id="optimizeToggle" />
+                <strong>Power Saver (Render on Demand)</strong>
+            </label>
+
+            <div class="separator"></div>
+
+            <div class="input-group">
+                <strong>Node Inspector</strong>
+                <label
+                    >Depth:
+                    <input
+                        type="number"
+                        id="depthInput"
+                        value="1"
+                        min="0"
+                        max="10"
+                /></label>
+            </div>
+            <div class="hint-text">
+                Click a node to isolate. Click again to reset.
+            </div>
+            <ul id="nodeList">
+                <li style="color: #888; cursor: default">
+                    Load a model to view nodes
+                </li>
+            </ul>
+        </div>
+
+        <script type="module">
+            import * as THREE from "three";
+            import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+            import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+            import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
+            import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+
+            import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+            import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+            import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+            import { SSAOPass } from "three/addons/postprocessing/SSAOPass.js";
+
+            // --- Scene Setup ---
+            const scene = new THREE.Scene();
+
+            // Color Palettes
+            const colors = {
+                realistic: new THREE.Color(0xeeeeee),
+                rally: new THREE.Color(0xffebbb),
+                blueprintBg: new THREE.Color(0x0a192f), // Deep technical blue
+                blueprintMesh: new THREE.Color(0x112240), // Slightly lighter blue for the solid shapes
+                blueprintLine: 0x64ffda, // Cyan lines
+            };
+
+            scene.background = colors.realistic;
+            const camera = new THREE.PerspectiveCamera(
+                75,
+                window.innerWidth / window.innerHeight,
+                0.1,
+                1000,
+            );
+            camera.position.set(3, 3, 5);
+
+            const renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.0;
+            renderer.outputEncoding = THREE.sRGBEncoding;
+            document.body.appendChild(renderer.domElement);
+
+            const controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+
+            // --- Blueprint Grid ---
+            // Adds a technical grid pattern to the floor
+            const gridHelper = new THREE.GridHelper(
+                20,
+                100,
+                colors.blueprintLine,
+                0x1e365c,
+            );
+            gridHelper.position.y = -0.5; // Offset slightly below the model
+            gridHelper.visible = false;
+            scene.add(gridHelper);
+
+            // --- Post Processing Pipeline (Rally Only) ---
+            const composer = new EffectComposer(renderer);
+            const renderScene = new RenderPass(scene, camera);
+            composer.addPass(renderScene);
+
+            const ssaoPass = new SSAOPass(
+                scene,
+                camera,
+                window.innerWidth,
+                window.innerHeight,
+            );
+            ssaoPass.kernelRadius = 16;
+            ssaoPass.minDistance = 0.002;
+            ssaoPass.maxDistance = 0.1;
+            composer.addPass(ssaoPass);
+
+            const bloomPass = new UnrealBloomPass(
+                new THREE.Vector2(window.innerWidth, window.innerHeight),
+                0.25,
+                0.8,
+                0.7,
+            );
+            composer.addPass(bloomPass);
+
+            // --- Environments ---
+            const pmremGenerator = new THREE.PMREMGenerator(renderer);
+            const realisticEnvMap = pmremGenerator.fromScene(
+                new RoomEnvironment(),
+                0.02,
+            ).texture;
+            scene.environment = realisticEnvMap;
+
+            const rallyAmbient = new THREE.AmbientLight(0xffffff, 0.2);
+            const rallyDirectional = new THREE.DirectionalLight(0xfff5e6, 0.2);
+            rallyDirectional.position.set(5, 10, 5);
+            const rallyFog = new THREE.FogExp2(colors.rally, 0.04);
+
+            // --- State Management ---
+            let currentStyle = "realistic";
+            let isOptimized = false;
+            let renderRequested = true;
+            let currentModel = null;
+            let currentDepth = 1;
+            let currentlyIsolatedNode = null;
+
+            function requestRender() {
+                renderRequested = true;
+            }
+            controls.addEventListener("change", requestRender);
+
+            document
+                .getElementById("styleSelect")
+                .addEventListener("change", (e) => {
+                    currentStyle = e.target.value;
+                    applyCurrentStyle();
+                });
+
+            document
+                .getElementById("optimizeToggle")
+                .addEventListener("change", (e) => {
+                    isOptimized = e.target.checked;
+                    requestRender();
+                });
+
+            document
+                .getElementById("depthInput")
+                .addEventListener("change", (e) => {
+                    currentDepth = parseInt(e.target.value, 10);
+                    currentlyIsolatedNode = null;
+                    resetVisibility();
+                    updateNodeList();
+                });
+
+            // --- Node Inspector Logic ---
+            const nodeListEl = document.getElementById("nodeList");
+
+            function getNodesAtDepth(node, targetDepth, currentLevel = 0) {
+                if (currentLevel === targetDepth) return [node];
+                let results = [];
+                for (const child of node.children) {
+                    results = results.concat(
+                        getNodesAtDepth(child, targetDepth, currentLevel + 1),
+                    );
+                }
+                return results;
+            }
+
+            function updateNodeList() {
+                nodeListEl.innerHTML = "";
+                if (!currentModel) {
+                    nodeListEl.innerHTML =
+                        '<li style="color: #888; cursor: default;">Load a model to view nodes</li>';
+                    return;
+                }
+
+                const nodes = getNodesAtDepth(currentModel, currentDepth);
+                if (nodes.length === 0) {
+                    nodeListEl.innerHTML =
+                        '<li style="color: #888; cursor: default;">No nodes at this depth</li>';
+                    return;
+                }
+
+                nodes.forEach((node) => {
+                    const li = document.createElement("li");
+                    li.textContent = node.name || `Unnamed (${node.type})`;
+                    li.title = node.name || `Unnamed (${node.type})`;
+
+                    li.addEventListener("click", () => {
+                        if (currentlyIsolatedNode === node) {
+                            resetVisibility();
+                            currentlyIsolatedNode = null;
+                            li.classList.remove("active");
+                        } else {
+                            isolateNode(node);
+                            currentlyIsolatedNode = node;
+                            document
+                                .querySelectorAll("#nodeList li")
+                                .forEach((el) => el.classList.remove("active"));
+                            li.classList.add("active");
+                        }
+                    });
+                    nodeListEl.appendChild(li);
+                });
+            }
+
+            function isolateNode(targetNode) {
+                if (!currentModel) return;
+                currentModel.traverse((child) => {
+                    if (child.isMesh) child.visible = false;
+                });
+                targetNode.traverse((child) => {
+                    if (child.isMesh) child.visible = true;
+                });
+                requestRender();
+            }
+
+            function resetVisibility() {
+                if (!currentModel) return;
+                currentModel.traverse((child) => {
+                    if (child.isMesh) child.visible = true;
+                });
+                requestRender();
+            }
+
+            function disposeModel(model) {
+                if (!model) return;
+                model.traverse((child) => {
+                    if (child.isMesh) {
+                        if (child.geometry) child.geometry.dispose();
+                        if (child.userData.blueprintEdges) {
+                            child.userData.blueprintEdges.geometry.dispose();
+                            child.userData.blueprintEdges.material.dispose();
+                        }
+                    }
+                });
+                scene.remove(model);
+            }
+
+            // --- Loader Setup ---
+            const loader = new GLTFLoader();
+            const dracoLoader = new DRACOLoader();
+            dracoLoader.setDecoderPath(
+                "https://www.gstatic.com/draco/v1/decoders/",
+            );
+            loader.setDRACOLoader(dracoLoader);
+
+            // Reusable Blueprint Material Cache
+            const blueprintMaterial = new THREE.MeshBasicMaterial({
+                color: colors.blueprintMesh,
+                // Polygon offset pushes the flat faces back slightly so the edge lines draw cleanly on top without Z-fighting
+                polygonOffset: true,
+                polygonOffsetFactor: 1,
+                polygonOffsetUnits: 1,
+            });
+
+            document
+                .getElementById("fileInput")
+                .addEventListener("change", (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const url = URL.createObjectURL(file);
+
+                    loader.load(url, (gltf) => {
+                        disposeModel(currentModel);
+                        currentlyIsolatedNode = null;
+                        currentModel = gltf.scene;
+
+                        const rawMaterials = gltf.parser.json.materials || [];
+                        const toonCache = new Map();
+                        const glassCache = new Map();
+
+                        currentModel.traverse((child) => {
+                            if (child.isMesh && child.material) {
+                                child.userData.originalMaterial =
+                                    child.material;
+                                const matUuid = child.material.uuid;
+
+                                // 1. Realistic & Rally Caches (Same as before)
+                                if (
+                                    !toonCache.has(matUuid) ||
+                                    !glassCache.has(matUuid)
+                                ) {
+                                    const rawMat = rawMaterials.find(
+                                        (m) => m.name === child.material.name,
+                                    );
+                                    let rawAlpha = 1.0;
+                                    if (
+                                        rawMat?.pbrMetallicRoughness
+                                            ?.baseColorFactor
+                                    ) {
+                                        rawAlpha =
+                                            rawMat.pbrMetallicRoughness
+                                                .baseColorFactor[3];
+                                    }
+
+                                    const isGlass =
+                                        (rawAlpha !== undefined &&
+                                            rawAlpha < 1.0) ||
+                                        child.material.transparent;
+                                    const toonOpacity =
+                                        rawAlpha !== undefined && rawAlpha < 1.0
+                                            ? rawAlpha
+                                            : child.material.opacity;
+
+                                    const newToonMat =
+                                        new THREE.MeshToonMaterial({
+                                            color: child.material.color,
+                                            transparent: isGlass,
+                                            opacity: toonOpacity,
+                                            side: THREE.DoubleSide,
+                                            depthWrite: !isGlass,
+                                        });
+                                    toonCache.set(matUuid, newToonMat);
+
+                                    if (
+                                        rawAlpha !== undefined &&
+                                        rawAlpha < 1.0
+                                    ) {
+                                        const newGlassMat =
+                                            new THREE.MeshPhysicalMaterial({
+                                                color: child.material.color,
+                                                transmission: rawAlpha,
+                                                opacity: 1.0,
+                                                transparent: true,
+                                                metalness: 0.0,
+                                                roughness: 0.05,
+                                                ior: 1.5,
+                                                thickness: 0.2,
+                                                side: THREE.DoubleSide,
+                                                depthWrite: false,
+                                            });
+                                        glassCache.set(matUuid, newGlassMat);
+                                    } else {
+                                        glassCache.set(matUuid, child.material);
+                                    }
+                                }
+                                child.userData.rallyMaterial =
+                                    toonCache.get(matUuid);
+                                child.userData.glassMaterial =
+                                    glassCache.get(matUuid);
+
+                                // 2. Build Blueprint Edges
+                                // 15 is the threshold angle. It won't draw lines on flat curves, only hard edges.
+                                const edgesGeometry = new THREE.EdgesGeometry(
+                                    child.geometry,
+                                    15,
+                                );
+                                const edgesMaterial =
+                                    new THREE.LineBasicMaterial({
+                                        color: colors.blueprintLine,
+                                    });
+                                const edgesLines = new THREE.LineSegments(
+                                    edgesGeometry,
+                                    edgesMaterial,
+                                );
+
+                                edgesLines.visible = false; // Hidden by default
+                                child.add(edgesLines); // Attach lines directly to the mesh
+
+                                child.userData.blueprintMaterial =
+                                    blueprintMaterial;
+                                child.userData.blueprintEdges = edgesLines;
+                            }
+                        });
+
+                        scene.add(currentModel);
+                        applyCurrentStyle();
+                        updateNodeList();
+                        requestRender();
+                    });
+                });
+
+            // --- Style Application Logic ---
+            function applyCurrentStyle() {
+                if (!currentModel) return;
+
+                // Reset all environments/lights first
+                scene.environment = null;
+                scene.fog = null;
+                gridHelper.visible = false;
+                scene.remove(rallyAmbient);
+                scene.remove(rallyDirectional);
+
+                if (currentStyle === "realistic") {
+                    scene.background = colors.realistic;
+                    scene.environment = realisticEnvMap;
+
+                    currentModel.traverse((child) => {
+                        if (child.isMesh) {
+                            child.material =
+                                child.userData.glassMaterial ||
+                                child.userData.originalMaterial;
+                            if (child.userData.blueprintEdges)
+                                child.userData.blueprintEdges.visible = false;
+                        }
+                    });
+                } else if (currentStyle === "rally") {
+                    scene.background = colors.rally;
+                    scene.fog = rallyFog;
+                    scene.add(rallyAmbient);
+                    scene.add(rallyDirectional);
+
+                    currentModel.traverse((child) => {
+                        if (child.isMesh && child.userData.rallyMaterial) {
+                            child.material = child.userData.rallyMaterial;
+                            if (child.userData.blueprintEdges)
+                                child.userData.blueprintEdges.visible = false;
+                        }
+                    });
+                } else if (currentStyle === "blueprint") {
+                    scene.background = colors.blueprintBg;
+                    gridHelper.visible = true;
+
+                    currentModel.traverse((child) => {
+                        if (child.isMesh && child.userData.blueprintMaterial) {
+                            child.material = child.userData.blueprintMaterial;
+                            if (child.userData.blueprintEdges)
+                                child.userData.blueprintEdges.visible = true;
+                        }
+                    });
+                }
+
+                requestRender();
+            }
+
+            // --- Render Loop ---
+            function executeRender() {
+                if (currentStyle === "rally") {
+                    composer.render(); // Heavy Bloom + AO
+                } else {
+                    renderer.render(scene, camera); // Lightweight native render
+                }
+            }
+
+            function animate() {
+                requestAnimationFrame(animate);
+                controls.update();
+
+                if (isOptimized) {
+                    if (renderRequested) {
+                        executeRender();
+                        renderRequested = false;
+                    }
+                } else {
+                    executeRender();
+                }
+            }
+            animate();
+
+            // --- Resize Handler ---
+            window.addEventListener("resize", () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                composer.setSize(window.innerWidth, window.innerHeight);
+                requestRender();
+            });
+        </script>
+    </body>
+</html>

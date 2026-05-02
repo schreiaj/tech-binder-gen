@@ -1,0 +1,451 @@
+/* ── Reset & base ─────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    --bg: #f0ebe4;
+    --bg-dark: #0a192f;
+    --text: #1a1a1a;
+    --text-muted: #888880;
+    /*--accent: #00a99d;*/
+    --accent: rgba(255, 170, 61);
+    --border: rgba(0, 0, 0, 0.1);
+    --header-h: 48px;
+}
+
+html,
+body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Inter", "Helvetica Neue", "Segoe UI", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    overflow-x: hidden;
+}
+
+/* ── Header ───────────────────────────────────────────────── */
+.notebook-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--header-h);
+    display: flex;
+    align-items: center;
+    padding: 0 32px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    z-index: 200;
+    gap: 12px;
+}
+
+.header-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-right: auto;
+}
+
+.team-logo {
+    height: 28px;
+    width: auto;
+}
+
+.logo-text {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text);
+}
+
+.logo-text strong {
+    color: var(--accent);
+}
+
+.logo-divider {
+    color: var(--border);
+    margin: 0 4px;
+}
+
+.logo-year {
+    color: var(--accent);
+}
+
+.chapter-nav {
+    display: flex;
+    gap: 0;
+}
+
+.nav-link {
+    padding: 6px 16px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.2s;
+    white-space: nowrap;
+}
+
+.nav-link:hover {
+    color: var(--text);
+}
+.nav-link.active {
+    color: var(--accent);
+}
+
+/* ── Main layout ──────────────────────────────────────────── */
+.notebook-main {
+    display: flex;
+    height: 100vh;
+    padding-top: var(--header-h);
+}
+
+/* ── Scroll pane (left, narrower) ─────────────────────────── */
+.scroll-pane {
+    width: 34%;
+    min-width: 280px;
+    max-width: 420px;
+    height: 100%;
+    overflow-y: auto;
+    padding: 48px 36px 48px 40px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+    border-right: 1px solid var(--border);
+    scroll-snap-type: y mandatory;
+}
+
+/* ── Viewer pane (right, dominant) ────────────────────────── */
+.viewer-pane {
+    flex: 1;
+    position: sticky;
+    top: var(--header-h);
+    height: calc(100vh - var(--header-h));
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+}
+
+.viewer-wrapper {
+    position: relative;
+    flex: 1;
+    overflow: hidden;
+}
+
+#viewer-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* ── Annotation overlay ───────────────────────────────────── */
+.annotations-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.annotation {
+    position: absolute;
+    pointer-events: none;
+    max-width: 160px;
+    transition: opacity 0.4s;
+}
+
+/* Left side annotations — right-aligned text, line goes right */
+.annotation--left-top,
+.annotation--left,
+.annotation--left-bottom {
+    left: 24px;
+    text-align: right;
+}
+
+.annotation--left-top {
+    top: 28%;
+}
+.annotation--left {
+    top: 50%;
+    transform: translateY(-50%);
+}
+.annotation--left-bottom {
+    bottom: 24%;
+}
+
+/* Right side annotations — left-aligned text, line goes left */
+.annotation--right-top,
+.annotation--right,
+.annotation--right-bottom {
+    right: 24px;
+    text-align: left;
+}
+
+.annotation--right-top {
+    top: 28%;
+}
+.annotation--right {
+    top: 50%;
+    transform: translateY(-50%);
+}
+.annotation--right-bottom {
+    bottom: 24%;
+}
+
+/* Hairline connector: left annotations extend a line to the right */
+.annotation--left-top::after,
+.annotation--left::after,
+.annotation--left-bottom::after {
+    content: "";
+    display: block;
+    width: 32px;
+    height: 1px;
+    background: var(--text-muted);
+    margin-left: auto;
+    margin-top: 6px;
+    opacity: 0.5;
+}
+
+/* Hairline connector: right annotations extend a line to the left */
+.annotation--right-top::after,
+.annotation--right::after,
+.annotation--right-bottom::after {
+    content: "";
+    display: block;
+    width: 32px;
+    height: 1px;
+    background: var(--text-muted);
+    margin-top: 6px;
+    opacity: 0.5;
+}
+
+.ann-label {
+    display: block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text);
+}
+
+.ann-desc {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+    margin-top: 2px;
+}
+
+/* ── Viewer controls ──────────────────────────────────────── */
+.viewer-controls {
+    display: flex;
+    gap: 6px;
+    padding: 10px 16px;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+}
+
+.style-btn {
+    padding: 4px 12px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.style-btn:hover {
+    color: var(--text);
+    border-color: rgba(0, 0, 0, 0.25);
+}
+.style-btn.active {
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+.view-tabs {
+    display: flex;
+    gap: 6px;
+    padding: 8px 16px;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+    flex-wrap: wrap;
+    min-height: 0;
+}
+
+.view-tabs:empty {
+    display: none;
+}
+
+.view-tab {
+    padding: 3px 12px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.view-tab:hover {
+    color: var(--text);
+}
+.view-tab.active {
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+/* ── Chapter ──────────────────────────────────────────────── */
+.notebook-chapter + .notebook-chapter {
+    margin-top: 80px;
+}
+
+.chapter-title-card {
+    margin-bottom: 40px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.chapter-eyebrow {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+}
+
+.chapter-title-card h2 {
+    font-size: 2.4rem;
+    font-weight: 800;
+    font-style: italic;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    color: var(--text);
+    text-transform: uppercase;
+}
+
+.chapter-description {
+    margin-top: 12px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.65;
+}
+
+/* ── Section ──────────────────────────────────────────────── */
+.notebook-section {
+    min-height: calc(100vh - var(--header-h));
+    padding: 48px 0;
+    border-bottom: 1px solid var(--border);
+    transition: opacity 0.3s;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    scroll-snap-align: start;
+}
+
+.notebook-section:not(.active) {
+    opacity: 0.45;
+}
+
+.section-title {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text);
+    margin-bottom: 6px;
+}
+
+.section-tagline {
+    font-size: 1.15rem;
+    font-weight: 700;
+    font-style: italic;
+    color: var(--text);
+    margin-bottom: 12px;
+    line-height: 1.2;
+}
+
+.section-description {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.75;
+}
+
+/* ── Images ───────────────────────────────────────────────── */
+.section-images {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.section-image img {
+    width: 100%;
+    border-radius: 3px;
+    object-fit: cover;
+    aspect-ratio: 4/3;
+    background: rgba(0, 0, 0, 0.05);
+    display: block;
+}
+
+.section-image figcaption {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 5px;
+    line-height: 1.35;
+}
+
+/* ── Blueprint mode overrides ─────────────────────────────── */
+body.blueprint-mode {
+    background: var(--bg-dark);
+    color: #e2e8f0;
+}
+
+body.blueprint-mode .notebook-header,
+body.blueprint-mode .scroll-pane,
+body.blueprint-mode .viewer-pane,
+body.blueprint-mode .viewer-controls,
+body.blueprint-mode .view-tabs {
+    background: var(--bg-dark);
+    border-color: rgba(255, 255, 255, 0.07);
+}
+
+body.blueprint-mode .ann-label {
+    color: #e2e8f0;
+}
+body.blueprint-mode .ann-desc {
+    color: #64ffda;
+}
+body.blueprint-mode .chapter-title-card {
+    border-color: rgba(255, 255, 255, 0.07);
+}
+body.blueprint-mode .notebook-section {
+    border-color: rgba(255, 255, 255, 0.07);
+}
+body.blueprint-mode .chapter-title-card h2,
+body.blueprint-mode .section-tagline {
+    color: #e2e8f0;
+}
+body.blueprint-mode .section-description,
+body.blueprint-mode .chapter-description {
+    color: #8896a8;
+}
+body.blueprint-mode .logo-text,
+body.blueprint-mode .nav-link {
+    color: #8896a8;
+}
