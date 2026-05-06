@@ -45,7 +45,7 @@ const ELEVATION_POLAR = {
   UPPER:  Math.PI / 4,
   MIDDLE: Math.PI / 2,
   LOWER:  3 * Math.PI / 4,
-  BOTTOM: 1.45,
+  BOTTOM: Math.PI - 0.15,
 };
 
 class NotebookViewer extends HTMLElement {
@@ -475,27 +475,45 @@ class NotebookViewer extends HTMLElement {
   _animateCamera(targetPos, targetCenter) {
     if (this._camAnim) this._camAnim.pause();
 
+    const curCenter = this.controls.target.clone();
+
+    // Decompose current camera position into spherical coords relative to current center
+    const curOffset = this.camera.position.clone().sub(curCenter);
+    const curR     = curOffset.length();
+    const curPolar = Math.acos(Math.max(-1, Math.min(1, curOffset.y / curR)));
+    const curAz    = Math.atan2(curOffset.x, curOffset.z);
+
+    // Decompose target camera position into spherical coords relative to target center
+    const tgtOffset = targetPos.clone().sub(targetCenter);
+    const tgtR     = tgtOffset.length();
+    const tgtPolar = Math.acos(Math.max(-1, Math.min(1, tgtOffset.y / tgtR)));
+
+    // Wrap azimuth delta to [-π, π] so the camera takes the short arc
+    let dAz = Math.atan2(tgtOffset.x, tgtOffset.z) - curAz;
+    if (dAz >  Math.PI) dAz -= Math.PI * 2;
+    if (dAz < -Math.PI) dAz += Math.PI * 2;
+    const tgtAz = curAz + dAz;
+
+    // Animate in spherical space; lerp the center separately
     const proxy = {
-      camX: this.camera.position.x,
-      camY: this.camera.position.y,
-      camZ: this.camera.position.z,
-      ctrX: this.controls.target.x,
-      ctrY: this.controls.target.y,
-      ctrZ: this.controls.target.z,
+      az: curAz, polar: curPolar, r: curR,
+      cx: curCenter.x, cy: curCenter.y, cz: curCenter.z,
     };
 
     this._camAnim = animate(proxy, {
-      camX: targetPos.x,
-      camY: targetPos.y,
-      camZ: targetPos.z,
-      ctrX: targetCenter.x,
-      ctrY: targetCenter.y,
-      ctrZ: targetCenter.z,
+      az: tgtAz, polar: tgtPolar, r: tgtR,
+      cx: targetCenter.x, cy: targetCenter.y, cz: targetCenter.z,
       duration: 700,
       easing: "easeInOutCubic",
       onRender: () => {
-        this.camera.position.set(proxy.camX, proxy.camY, proxy.camZ);
-        this.controls.target.set(proxy.ctrX, proxy.ctrY, proxy.ctrZ);
+        // Reconstruct Cartesian position from spherical coords relative to lerped center
+        const sinP = Math.sin(proxy.polar);
+        this.camera.position.set(
+          proxy.cx + proxy.r * sinP * Math.sin(proxy.az),
+          proxy.cy + proxy.r * Math.cos(proxy.polar),
+          proxy.cz + proxy.r * sinP * Math.cos(proxy.az),
+        );
+        this.controls.target.set(proxy.cx, proxy.cy, proxy.cz);
         this._requestRender();
       },
     });
