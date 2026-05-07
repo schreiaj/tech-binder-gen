@@ -146,6 +146,16 @@ npm run preview       # serves dist/ on http://localhost:4173
 
 Output lands in `dist/`. Deploy that folder anywhere (GitHub Pages, Netlify, etc.).
 
+## Deploying to GitHub Pages
+
+A workflow is included at `.github/workflows/deploy.yml`. To enable it:
+
+1. In your repo settings, go to **Pages → Source** and select **GitHub Actions**.
+2. Commit your `config.yaml` (required for the build). If it isn't committed, the workflow falls back to `config.example.yaml` automatically.
+3. Push to `main` — the site will build and deploy automatically.
+
+You can also trigger a deployment manually from the **Actions** tab via `workflow_dispatch`.
+
 ## `<notebook-viewer>` web component
 
 The 3D viewer is a self-contained custom element. Control it by dispatching custom events on the element:
