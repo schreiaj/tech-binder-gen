@@ -1,7 +1,7 @@
-<section class="notebook-section" data-views="{{views_json}}">
+<section class="notebook-section{{#if position}} notebook-section--{{position}}{{/if}}" data-views="{{views_json}}">
     <div
-        class="section-content"
-        data-on-intersect__full__debounce.500ms='viewer.dispatchEvent(new CustomEvent("setview", { detail:{{{first_view_json}}} }))'
+        class="section-card"
+        data-on-intersect__full__debounce.50ms='viewer.dispatchEvent(new CustomEvent("setview", { detail:{{{first_view_json}}} }))'
     >
         {{#if title}}
         <h3 class="section-title">{{title}}</h3>

@@ -20,7 +20,9 @@ function tagMaterial(mat) {
 }
 
 function cssVarToHex(varName) {
-  const raw = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+  const raw = getComputedStyle(document.documentElement)
+    .getPropertyValue(varName)
+    .trim();
   const nums = raw.match(/\d+/g);
   if (nums && nums.length >= 3) {
     const [r, g, b] = nums.map(Number);
@@ -30,21 +32,21 @@ function cssVarToHex(varName) {
 }
 
 const FACING_AZIMUTH = {
-  N:  0,
+  N: 0,
   NE: Math.PI * 0.25,
-  E:  Math.PI * 0.5,
+  E: Math.PI * 0.5,
   SE: Math.PI * 0.75,
-  S:  Math.PI,
+  S: Math.PI,
   SW: Math.PI * 1.25,
-  W:  Math.PI * 1.5,
+  W: Math.PI * 1.5,
   NW: Math.PI * 1.75,
 };
 
 const ELEVATION_POLAR = {
-  TOP:    0.15,
-  UPPER:  Math.PI / 4,
+  TOP: 0.15,
+  UPPER: Math.PI / 4,
   MIDDLE: Math.PI / 2,
-  LOWER:  3 * Math.PI / 4,
+  LOWER: (3 * Math.PI) / 4,
   BOTTOM: Math.PI - 0.15,
 };
 
@@ -80,13 +82,42 @@ class NotebookViewer extends HTMLElement {
     this._resizeObserver = new ResizeObserver(() => this._resize());
     this._resizeObserver.observe(this);
 
-    this.addEventListener("setview",      (e) => this.transitionToView(e.detail));
-    this.addEventListener("setstyle",     (e) => this.setStyle(e.detail?.style));
-    this.addEventListener("showallnodes", ()  => this.showAllNodes());
+    this.addEventListener("setview", (e) => this.transitionToView(e.detail));
+    this.addEventListener("setstyle", (e) => this.setStyle(e.detail?.style));
+    this.addEventListener("showmeshes", (e) => this.showMeshes(e.detail?.nodes ?? []));
 
     if (this.hasAttribute("src")) this._loadModel(this.getAttribute("src"));
 
     this._animate();
+  }
+
+  getScreenPositionOfNode(nodeName) {
+    const activeMeshes = new Set();
+    this.currentModel.traverse((c) => {
+      if (c.name == nodeName) {
+        c.traverse((child) => {
+          if (child.isMesh) activeMeshes.add(child);
+        });
+      }
+    });
+
+    const box = new THREE.Box3();
+    for (const mesh of activeMeshes) {
+      box.expandByObject(mesh);
+    }
+
+    const center = box.isEmpty()
+      ? this._modelCenter.clone()
+      : box.getCenter(new THREE.Vector3());
+
+    // Project world position to NDC, then to canvas-local pixels
+    const projected = center.clone().project(this.camera);
+    const w = this._canvas.clientWidth;
+    const h = this._canvas.clientHeight;
+    return {
+      x: (projected.x * 0.5 + 0.5) * w,
+      y: (-projected.y * 0.5 + 0.5) * h,
+    };
   }
 
   disconnectedCallback() {
@@ -97,7 +128,7 @@ class NotebookViewer extends HTMLElement {
 
   attributeChangedCallback(name, _old, val) {
     if (!this.renderer) return;
-    if (name === "src")        this._loadModel(val);
+    if (name === "src") this._loadModel(val);
     if (name === "style-mode") this.setStyle(val);
   }
 
@@ -122,7 +153,7 @@ class NotebookViewer extends HTMLElement {
       : box.getBoundingSphere(new THREE.Sphere()).radius;
 
     const azimuth = FACING_AZIMUTH[facing] ?? 0;
-    const polar   = ELEVATION_POLAR[elevation] ?? Math.PI / 2;
+    const polar = ELEVATION_POLAR[elevation] ?? Math.PI / 2;
     const r = radius * 2.5;
 
     const targetPos = new THREE.Vector3(
@@ -134,11 +165,8 @@ class NotebookViewer extends HTMLElement {
     this._animateCamera(targetPos, center);
   }
 
-  showAllNodes() {
-    if (!this.currentModel) return;
-    this.currentModel.traverse((c) => {
-      if (c.isMesh) { this._dimmedMeshes.delete(c); this._animateMeshDim(c, false); }
-    });
+  showMeshes(nodes = []) {
+    this._setNodeVisibility(nodes);
   }
 
   setStyle(style) {
@@ -149,9 +177,13 @@ class NotebookViewer extends HTMLElement {
   // --- Init ---
 
   _init() {
-    this.scene    = new THREE.Scene();
-    this.camera   = new THREE.PerspectiveCamera(60, 1, 0.01, 1000);
-    this.renderer = new THREE.WebGLRenderer({ canvas: this._canvas, antialias: true, alpha: true });
+    this.scene = new THREE.Scene();
+    this.camera = new THREE.PerspectiveCamera(60, 1, 0.01, 1000);
+    this.renderer = new THREE.WebGLRenderer({
+      canvas: this._canvas,
+      antialias: true,
+      alpha: true,
+    });
 
     this._setupRenderer();
     this._setupScene();
@@ -173,8 +205,8 @@ class NotebookViewer extends HTMLElement {
     const accentHex = cssVarToHex("--accent");
 
     this._colors = {
-      rally:         new THREE.Color(0xffebbb),
-      blueprintBg:   new THREE.Color(0x0a192f),
+      rally: new THREE.Color(0xffebbb),
+      blueprintBg: new THREE.Color(0x0a192f),
       blueprintMesh: new THREE.Color(0x112240),
       blueprintLine: accentHex,
     };
@@ -186,9 +218,9 @@ class NotebookViewer extends HTMLElement {
     scene.environment = this._realisticEnv;
 
     this._rallyAmbient = new THREE.AmbientLight(0xffffff, 0.2);
-    this._rallyDir     = new THREE.DirectionalLight(0xfff5e6, 0.2);
+    this._rallyDir = new THREE.DirectionalLight(0xfff5e6, 0.2);
     this._rallyDir.position.set(5, 10, 5);
-    this._rallyFog     = new THREE.FogExp2(this._colors.rally, 0.04);
+    this._rallyFog = new THREE.FogExp2(this._colors.rally, 0.04);
 
     const accentDim = new THREE.Color(accentHex).multiplyScalar(0.2).getHex();
     this._grid = new THREE.GridHelper(20, 100, accentHex, accentDim);
@@ -208,7 +240,7 @@ class NotebookViewer extends HTMLElement {
 
   _setupPostProcessing() {
     const { renderer, scene, camera, _canvas: canvas } = this;
-    const w = canvas.clientWidth  || 800;
+    const w = canvas.clientWidth || 800;
     const h = canvas.clientHeight || 600;
 
     this.composer = new EffectComposer(renderer);
@@ -216,8 +248,8 @@ class NotebookViewer extends HTMLElement {
 
     const ssao = new SSAOPass(scene, camera, w, h);
     ssao.kernelRadius = 16;
-    ssao.minDistance  = 0.002;
-    ssao.maxDistance  = 0.1;
+    ssao.minDistance = 0.002;
+    ssao.maxDistance = 0.1;
     this.composer.addPass(ssao);
 
     this.composer.addPass(
@@ -255,7 +287,7 @@ class NotebookViewer extends HTMLElement {
       this._grid.position.y = box.min.y;
 
       const rawMaterials = gltf.parser.json.materials || [];
-      const toonCache  = new Map();
+      const toonCache = new Map();
 
       this.currentModel.traverse((child) => {
         if (!child.isMesh || !child.material) return;
@@ -266,17 +298,21 @@ class NotebookViewer extends HTMLElement {
         const uuid = child.material.uuid;
 
         if (!toonCache.has(uuid)) {
-          const raw      = rawMaterials.find((m) => m.name === child.material.name);
-          const rawAlpha = raw?.pbrMetallicRoughness?.baseColorFactor?.[3] ?? 1.0;
-          const isGlass  = rawAlpha < 1.0 || child.material.transparent;
+          const raw = rawMaterials.find((m) => m.name === child.material.name);
+          const rawAlpha =
+            raw?.pbrMetallicRoughness?.baseColorFactor?.[3] ?? 1.0;
+          const isGlass = rawAlpha < 1.0 || child.material.transparent;
 
-          toonCache.set(uuid, new THREE.MeshToonMaterial({
-            color:      child.material.color,
-            transparent: isGlass,
-            opacity:    isGlass ? rawAlpha : child.material.opacity,
-            side:       THREE.DoubleSide,
-            depthWrite: !isGlass,
-          }));
+          toonCache.set(
+            uuid,
+            new THREE.MeshToonMaterial({
+              color: child.material.color,
+              transparent: isGlass,
+              opacity: isGlass ? rawAlpha : child.material.opacity,
+              side: THREE.DoubleSide,
+              depthWrite: !isGlass,
+            }),
+          );
         }
 
         // Clone per-mesh so each can be individually faded/desaturated
@@ -300,7 +336,11 @@ class NotebookViewer extends HTMLElement {
       this.scene.add(this.currentModel);
       this.controls.target.copy(this._modelCenter);
       this._applyStyle();
-      this.transitionToView({ facing: "N", elevation: "MIDDLE", displayedNodes: [] });
+      this.transitionToView({
+        facing: "N",
+        elevation: "MIDDLE",
+        displayedNodes: [],
+      });
       this._requestRender();
     });
   }
@@ -322,7 +362,8 @@ class NotebookViewer extends HTMLElement {
       currentModel.traverse((c) => {
         if (!c.isMesh) return;
         c.material = c.userData.originalMaterial;
-        if (c.userData.blueprintEdges) c.userData.blueprintEdges.visible = false;
+        if (c.userData.blueprintEdges)
+          c.userData.blueprintEdges.visible = false;
       });
     } else if (style === "rally") {
       scene.background = this._colors.rally;
@@ -331,7 +372,8 @@ class NotebookViewer extends HTMLElement {
       currentModel.traverse((c) => {
         if (!c.isMesh || !c.userData.rallyMaterial) return;
         c.material = c.userData.rallyMaterial;
-        if (c.userData.blueprintEdges) c.userData.blueprintEdges.visible = false;
+        if (c.userData.blueprintEdges)
+          c.userData.blueprintEdges.visible = false;
       });
     } else if (style === "blueprint") {
       scene.background = this._colors.blueprintBg;
@@ -355,7 +397,10 @@ class NotebookViewer extends HTMLElement {
 
     if (displayedNodes.length === 0) {
       this.currentModel.traverse((c) => {
-        if (c.isMesh) { this._dimmedMeshes.delete(c); this._animateMeshDim(c, false); }
+        if (c.isMesh) {
+          this._dimmedMeshes.delete(c);
+          this._animateMeshDim(c, false);
+        }
       });
       return;
     }
@@ -363,14 +408,19 @@ class NotebookViewer extends HTMLElement {
     const activeMeshes = new Set();
     this.currentModel.traverse((c) => {
       if (displayedNodes.includes(c.name)) {
-        c.traverse((child) => { if (child.isMesh) activeMeshes.add(child); });
+        c.traverse((child) => {
+          if (child.isMesh) activeMeshes.add(child);
+        });
       }
     });
 
     // Nothing matched — show everything rather than a blank canvas
     if (activeMeshes.size === 0) {
       this.currentModel.traverse((c) => {
-        if (c.isMesh) { this._dimmedMeshes.delete(c); this._animateMeshDim(c, false); }
+        if (c.isMesh) {
+          this._dimmedMeshes.delete(c);
+          this._animateMeshDim(c, false);
+        }
       });
       return;
     }
@@ -378,7 +428,8 @@ class NotebookViewer extends HTMLElement {
     this.currentModel.traverse((c) => {
       if (!c.isMesh) return;
       const dim = !activeMeshes.has(c);
-      if (dim) this._dimmedMeshes.add(c); else this._dimmedMeshes.delete(c);
+      if (dim) this._dimmedMeshes.add(c);
+      else this._dimmedMeshes.delete(c);
       this._animateMeshDim(c, dim);
     });
   }
@@ -411,22 +462,28 @@ class NotebookViewer extends HTMLElement {
     let targetR, targetG, targetB, targetOpacity;
     if (dim) {
       const lum = orig.r * 0.299 + orig.g * 0.587 + orig.b * 0.114;
-      targetR       = orig.r + (lum - orig.r) * 0.85;
-      targetG       = orig.g + (lum - orig.g) * 0.85;
-      targetB       = orig.b + (lum - orig.b) * 0.85;
+      targetR = orig.r + (lum - orig.r) * 0.85;
+      targetG = orig.g + (lum - orig.g) * 0.85;
+      targetB = orig.b + (lum - orig.b) * 0.85;
       targetOpacity = 0.12;
     } else {
-      targetR = orig.r; targetG = orig.g; targetB = orig.b;
+      targetR = orig.r;
+      targetG = orig.g;
+      targetB = orig.b;
       targetOpacity = origOpacity;
     }
 
     const proxy = {
-      r: mat.color.r, g: mat.color.g, b: mat.color.b,
+      r: mat.color.r,
+      g: mat.color.g,
+      b: mat.color.b,
       opacity: mat.opacity,
     };
 
     const anim = animate(proxy, {
-      r: targetR, g: targetG, b: targetB,
+      r: targetR,
+      g: targetG,
+      b: targetB,
       opacity: targetOpacity,
       duration: 400,
       easing: "easeInOutQuad",
@@ -459,13 +516,13 @@ class NotebookViewer extends HTMLElement {
 
       mesh.visible = true;
       const orig = mat.userData.origColor;
-      const lum  = orig.r * 0.299 + orig.g * 0.587 + orig.b * 0.114;
+      const lum = orig.r * 0.299 + orig.g * 0.587 + orig.b * 0.114;
       mat.color.setRGB(
         orig.r + (lum - orig.r) * 0.85,
         orig.g + (lum - orig.g) * 0.85,
         orig.b + (lum - orig.b) * 0.85,
       );
-      mat.opacity     = 0.12;
+      mat.opacity = 0.12;
       mat.transparent = true;
     });
   }
@@ -479,30 +536,38 @@ class NotebookViewer extends HTMLElement {
 
     // Decompose current camera position into spherical coords relative to current center
     const curOffset = this.camera.position.clone().sub(curCenter);
-    const curR     = curOffset.length();
+    const curR = curOffset.length();
     const curPolar = Math.acos(Math.max(-1, Math.min(1, curOffset.y / curR)));
-    const curAz    = Math.atan2(curOffset.x, curOffset.z);
+    const curAz = Math.atan2(curOffset.x, curOffset.z);
 
     // Decompose target camera position into spherical coords relative to target center
     const tgtOffset = targetPos.clone().sub(targetCenter);
-    const tgtR     = tgtOffset.length();
+    const tgtR = tgtOffset.length();
     const tgtPolar = Math.acos(Math.max(-1, Math.min(1, tgtOffset.y / tgtR)));
 
     // Wrap azimuth delta to [-π, π] so the camera takes the short arc
     let dAz = Math.atan2(tgtOffset.x, tgtOffset.z) - curAz;
-    if (dAz >  Math.PI) dAz -= Math.PI * 2;
+    if (dAz > Math.PI) dAz -= Math.PI * 2;
     if (dAz < -Math.PI) dAz += Math.PI * 2;
     const tgtAz = curAz + dAz;
 
     // Animate in spherical space; lerp the center separately
     const proxy = {
-      az: curAz, polar: curPolar, r: curR,
-      cx: curCenter.x, cy: curCenter.y, cz: curCenter.z,
+      az: curAz,
+      polar: curPolar,
+      r: curR,
+      cx: curCenter.x,
+      cy: curCenter.y,
+      cz: curCenter.z,
     };
 
     this._camAnim = animate(proxy, {
-      az: tgtAz, polar: tgtPolar, r: tgtR,
-      cx: targetCenter.x, cy: targetCenter.y, cz: targetCenter.z,
+      az: tgtAz,
+      polar: tgtPolar,
+      r: tgtR,
+      cx: targetCenter.x,
+      cy: targetCenter.y,
+      cz: targetCenter.z,
       duration: 700,
       easing: "easeInOutCubic",
       onRender: () => {
@@ -540,7 +605,7 @@ class NotebookViewer extends HTMLElement {
   }
 
   _resize() {
-    const w = this.clientWidth  || 800;
+    const w = this.clientWidth || 800;
     const h = this.clientHeight || 600;
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();

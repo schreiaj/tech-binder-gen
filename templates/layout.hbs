@@ -30,9 +30,11 @@
       {{#each headers}}
         <div class="notebook-chapter" id="chapter-{{@index}}">
           <div class="chapter-title-card">
-            {{#if ../teamLabel}}<p class="chapter-eyebrow">{{../teamLabel}}</p>{{/if}}
-            <h2>{{title}}</h2>
-            {{#if description}}<p class="chapter-description">{{description}}</p>{{/if}}
+            <div class="chapter-title-text">
+              {{#if ../teamLabel}}<p class="chapter-eyebrow">{{../teamLabel}}</p>{{/if}}
+              <h2>{{title}}</h2>
+              {{#if description}}<p class="chapter-description">{{description}}</p>{{/if}}
+            </div>
           </div>
           {{#each sections}}
             {{> section}}

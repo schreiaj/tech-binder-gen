@@ -104,40 +104,35 @@ body {
 
 /* ── Main layout ──────────────────────────────────────────── */
 .notebook-main {
-    display: flex;
+    position: relative;
     height: 100vh;
+    overflow: hidden;
     padding-top: var(--header-h);
 }
 
-/* ── Scroll pane (left, narrower) ─────────────────────────── */
-.scroll-pane {
-    width: 34%;
-    min-width: 280px;
-    max-width: 420px;
-    height: 100%;
-    overflow-y: auto;
-    padding: 48px 36px 48px 40px;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
-    border-right: 1px solid var(--border);
-    scroll-snap-type: y mandatory;
-}
-
-/* ── Viewer pane (right, dominant) ────────────────────────── */
+/* ── Viewer pane (full-screen background) ─────────────────── */
 .viewer-pane {
-    flex: 1;
-    position: sticky;
+    position: absolute;
+    inset: 0;
     top: var(--header-h);
-    height: calc(100vh - var(--header-h));
-    display: flex;
-    flex-direction: column;
-    background: var(--bg);
 }
 
 .viewer-wrapper {
     position: relative;
-    flex: 1;
-    overflow: hidden;
+    width: 100%;
+    height: 100%;
+}
+
+/* ── Scroll pane (full-width overlay, centered content) ───── */
+.scroll-pane {
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+    scroll-snap-type: y mandatory;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+    z-index: 10;
+    pointer-events: none;
 }
 
 #viewer-canvas {
@@ -311,13 +306,20 @@ body {
 
 /* ── Chapter ──────────────────────────────────────────────── */
 .notebook-chapter + .notebook-chapter {
-    margin-top: 80px;
+    margin-top: 0;
 }
 
+/* Chapter title card: transparent full-viewport "slide" — viewer shows through */
 .chapter-title-card {
-    margin-bottom: 40px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid var(--border);
+    min-height: calc(100vh - var(--header-h));
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    text-align: center;
+    padding: 56px 40px 0;
+    scroll-snap-align: start;
+    pointer-events: auto;
 }
 
 .chapter-eyebrow {
@@ -346,19 +348,34 @@ body {
     line-height: 1.65;
 }
 
-/* ── Section ──────────────────────────────────────────────── */
+/* ── Section (frosted card) ───────────────────────────────── */
 .notebook-section {
     min-height: calc(100vh - var(--header-h));
-    padding: 48px 0;
-    border-bottom: 1px solid var(--border);
-    transition: opacity 0.3s;
     display: flex;
     flex-direction: column;
     justify-content: center;
+    align-items: flex-start;
     scroll-snap-align: start;
+    padding: 48px 80px;
 }
 
-.notebook-section:not(.active) {
+.notebook-section--center { align-items: center; }
+.notebook-section--right  { align-items: flex-end; }
+
+.section-card {
+    width: 100%;
+    max-width: 560px;
+    padding: 36px 40px;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    transition: opacity 0.3s;
+    pointer-events: auto;
+}
+
+.notebook-section:not(.active) .section-card {
     opacity: 0.45;
 }
 
@@ -417,11 +434,14 @@ body.blueprint-mode {
 }
 
 body.blueprint-mode .notebook-header,
-body.blueprint-mode .scroll-pane,
-body.blueprint-mode .viewer-pane,
 body.blueprint-mode .viewer-controls,
 body.blueprint-mode .view-tabs {
     background: var(--bg-dark);
+    border-color: rgba(255, 255, 255, 0.07);
+}
+
+body.blueprint-mode .section-card {
+    background: color-mix(in srgb, var(--bg-dark) 88%, transparent);
     border-color: rgba(255, 255, 255, 0.07);
 }
 
