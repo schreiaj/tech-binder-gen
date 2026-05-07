@@ -320,6 +320,10 @@ body {
     text-align: center;
     padding: calc(var(--header-h) + 72px) 40px 0;
     scroll-snap-align: start;
+    pointer-events: none;
+}
+
+.chapter-title-text {
     pointer-events: auto;
 }
 
