@@ -7,7 +7,33 @@ import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { SSAOPass } from "three/addons/postprocessing/SSAOPass.js";
+import { CSS2DRenderer } from "three/addons/renderers/CSS2DRenderer.js";
 import { animate } from "animejs";
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+// Translate a card so its nearest edge sits at the clock anchor point.
+function cardTransform(dx, dy) {
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    return dx > 0 ? "translate(0, -50%)" : "translate(-100%, -50%)";
+  }
+  return dy > 0 ? "translate(-50%, -100%)" : "translate(-50%, 0%)";
+}
+
+// Return the desaturated, ghosted colour for a dimmed mesh.
+function dimmedColor(orig) {
+  const lum = orig.r * 0.299 + orig.g * 0.587 + orig.b * 0.114;
+  return {
+    r: orig.r + (lum - orig.r) * 0.85,
+    g: orig.g + (lum - orig.g) * 0.85,
+    b: orig.b + (lum - orig.b) * 0.85,
+  };
+}
+
+// Clamp a raw location attribute value to 0–11.
+function parseLocation(attr) {
+  return Math.max(0, Math.min(11, parseInt(attr ?? "0", 10) || 0));
+}
 
 // Stamp a material with its resting color/opacity so dim animations can restore them.
 // Also enforce DoubleSide — any material can become semi-transparent via dimming,
@@ -60,10 +86,29 @@ class NotebookViewer extends HTMLElement {
     const shadow = this.attachShadow({ mode: "open" });
 
     const style = document.createElement("style");
-    style.textContent = `:host { display: block; } canvas { display: block; width: 100%; height: 100%; }`;
+    style.textContent = `
+      :host { display: block; position: relative; }
+      canvas { display: block; width: 100%; height: 100%; }
+      #css2d-layer { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
+      #annotation-lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+      #annotation-lines line { stroke: var(--accent, orange); stroke-width: 1.5; stroke-dasharray: 4 3; }
+      #annotation-lines circle { fill: var(--accent, orange); }
+    `;
 
     this._canvas = document.createElement("canvas");
-    shadow.append(style, this._canvas);
+
+    this._css2dRenderer = new CSS2DRenderer();
+    this._css2dRenderer.domElement.id = "css2d-layer";
+    // CSS2DRenderer sets overflow:hidden inline in its constructor; override so cards
+    // near the edge of the viewer aren't clipped.
+    this._css2dRenderer.domElement.style.overflow = "visible";
+
+    this._annotationSvg = document.createElementNS(SVG_NS, "svg");
+    this._annotationSvg.id = "annotation-lines";
+
+    shadow.append(style, this._canvas, this._annotationSvg, this._css2dRenderer.domElement);
+
+    this._annotations = new Set();
 
     this._modelCenter = new THREE.Vector3();
     this._modelRadius = 1;
@@ -91,27 +136,21 @@ class NotebookViewer extends HTMLElement {
     this._animate();
   }
 
-  getScreenPositionOfNode(nodeName) {
-    const activeMeshes = new Set();
-    this.currentModel.traverse((c) => {
-      if (c.name == nodeName) {
-        c.traverse((child) => {
-          if (child.isMesh) activeMeshes.add(child);
-        });
-      }
-    });
-
+  // Returns the world-space bounding-box center of all meshes under a named node,
+  // or null if the node has no meshes.
+  _getNodeWorldCenter(nodeName) {
     const box = new THREE.Box3();
-    for (const mesh of activeMeshes) {
-      box.expandByObject(mesh);
-    }
+    this.currentModel.traverse((c) => {
+      if (c.name === nodeName)
+        c.traverse((ch) => { if (ch.isMesh) box.expandByObject(ch); });
+    });
+    return box.isEmpty() ? null : box.getCenter(new THREE.Vector3());
+  }
 
-    const center = box.isEmpty()
-      ? this._modelCenter.clone()
-      : box.getCenter(new THREE.Vector3());
-
-    // Project world position to NDC, then to canvas-local pixels
-    const projected = center.clone().project(this.camera);
+  // Projects a named node's world center to canvas-local CSS pixels.
+  getScreenPositionOfNode(nodeName) {
+    const center = this._getNodeWorldCenter(nodeName) ?? this._modelCenter.clone();
+    const projected = center.project(this.camera);
     const w = this._canvas.clientWidth;
     const h = this._canvas.clientHeight;
     return {
@@ -336,6 +375,7 @@ class NotebookViewer extends HTMLElement {
       this.scene.add(this.currentModel);
       this.controls.target.copy(this._modelCenter);
       this._applyStyle();
+      this._annotations.forEach((a) => this._attachAnnotationToScene(a));
       this.transitionToView({
         facing: "N",
         elevation: "MIDDLE",
@@ -392,44 +432,32 @@ class NotebookViewer extends HTMLElement {
 
   // --- Node visibility ---
 
+  _undimAll() {
+    this.currentModel.traverse((c) => {
+      if (c.isMesh) {
+        this._dimmedMeshes.delete(c);
+        this._animateMeshDim(c, false);
+      }
+    });
+  }
+
   _setNodeVisibility(displayedNodes) {
     if (!this.currentModel) return;
-
-    if (displayedNodes.length === 0) {
-      this.currentModel.traverse((c) => {
-        if (c.isMesh) {
-          this._dimmedMeshes.delete(c);
-          this._animateMeshDim(c, false);
-        }
-      });
-      return;
-    }
+    if (displayedNodes.length === 0) { this._undimAll(); return; }
 
     const activeMeshes = new Set();
     this.currentModel.traverse((c) => {
-      if (displayedNodes.includes(c.name)) {
-        c.traverse((child) => {
-          if (child.isMesh) activeMeshes.add(child);
-        });
-      }
+      if (displayedNodes.includes(c.name))
+        c.traverse((ch) => { if (ch.isMesh) activeMeshes.add(ch); });
     });
 
     // Nothing matched — show everything rather than a blank canvas
-    if (activeMeshes.size === 0) {
-      this.currentModel.traverse((c) => {
-        if (c.isMesh) {
-          this._dimmedMeshes.delete(c);
-          this._animateMeshDim(c, false);
-        }
-      });
-      return;
-    }
+    if (activeMeshes.size === 0) { this._undimAll(); return; }
 
     this.currentModel.traverse((c) => {
       if (!c.isMesh) return;
       const dim = !activeMeshes.has(c);
-      if (dim) this._dimmedMeshes.add(c);
-      else this._dimmedMeshes.delete(c);
+      if (dim) this._dimmedMeshes.add(c); else this._dimmedMeshes.delete(c);
       this._animateMeshDim(c, dim);
     });
   }
@@ -459,19 +487,9 @@ class NotebookViewer extends HTMLElement {
 
     const orig = mat.userData.origColor;
 
-    let targetR, targetG, targetB, targetOpacity;
-    if (dim) {
-      const lum = orig.r * 0.299 + orig.g * 0.587 + orig.b * 0.114;
-      targetR = orig.r + (lum - orig.r) * 0.85;
-      targetG = orig.g + (lum - orig.g) * 0.85;
-      targetB = orig.b + (lum - orig.b) * 0.85;
-      targetOpacity = 0.12;
-    } else {
-      targetR = orig.r;
-      targetG = orig.g;
-      targetB = orig.b;
-      targetOpacity = origOpacity;
-    }
+    const dc = dim ? dimmedColor(orig) : orig;
+    const targetOpacity = dim ? 0.12 : origOpacity;
+    const { r: targetR, g: targetG, b: targetB } = dc;
 
     const proxy = {
       r: mat.color.r,
@@ -515,13 +533,8 @@ class NotebookViewer extends HTMLElement {
       }
 
       mesh.visible = true;
-      const orig = mat.userData.origColor;
-      const lum = orig.r * 0.299 + orig.g * 0.587 + orig.b * 0.114;
-      mat.color.setRGB(
-        orig.r + (lum - orig.r) * 0.85,
-        orig.g + (lum - orig.g) * 0.85,
-        orig.b + (lum - orig.b) * 0.85,
-      );
+      const { r, g, b } = dimmedColor(mat.userData.origColor);
+      mat.color.setRGB(r, g, b);
       mat.opacity = 0.12;
       mat.transparent = true;
     });
@@ -602,6 +615,142 @@ class NotebookViewer extends HTMLElement {
     } else {
       this.renderer.render(this.scene, this.camera);
     }
+    this._css2dRenderer.render(this.scene, this.camera);
+    this._updateAnnotationLines();
+  }
+
+  // --- Annotation registry ---
+
+  _registerAnnotation(annotation) {
+    const line = document.createElementNS(SVG_NS, "line");
+    line.style.display = "none";
+
+    const dot = document.createElementNS(SVG_NS, "circle");
+    dot.setAttribute("r", "4");
+    dot.style.display = "none";
+
+    this._annotationSvg.append(line, dot);
+    annotation._svgLine = line;
+    annotation._svgDot = dot;
+
+    this._annotations.add(annotation);
+    this._attachAnnotationToScene(annotation);
+  }
+
+  _unregisterAnnotation(annotation) {
+    this._annotations.delete(annotation);
+    annotation._css2dObj?.removeFromParent();
+    annotation._svgLine?.remove();
+    annotation._svgDot?.remove();
+  }
+
+  _attachAnnotationToScene(annotation) {
+    const target = annotation.getAttribute("target");
+    if (!target || !this.currentModel) return;
+    const center = this._getNodeWorldCenter(target);
+    if (!center) return;
+    annotation._css2dObj.removeFromParent();
+    annotation._css2dObj.position.copy(center);
+    this.scene.add(annotation._css2dObj);
+    this._requestRender();
+  }
+
+  // Project the 8 corners of the visible-nodes world AABB to screen space.
+  _getVisibleScreenBounds() {
+    if (!this.currentModel) return null;
+
+    const box3 = new THREE.Box3();
+    this.currentModel.traverse((c) => {
+      if (c.isMesh && !this._dimmedMeshes.has(c)) box3.expandByObject(c);
+    });
+    if (box3.isEmpty()) return null;
+
+    const w = this._canvas.clientWidth;
+    const h = this._canvas.clientHeight;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+    const v = new THREE.Vector3();
+    for (let xi = 0; xi < 2; xi++) {
+      for (let yi = 0; yi < 2; yi++) {
+        for (let zi = 0; zi < 2; zi++) {
+          v.set(
+            xi ? box3.max.x : box3.min.x,
+            yi ? box3.max.y : box3.min.y,
+            zi ? box3.max.z : box3.min.z,
+          ).project(this.camera);
+          const sx = (v.x * 0.5 + 0.5) * w;
+          const sy = (-v.y * 0.5 + 0.5) * h;
+          if (sx < minX) minX = sx;
+          if (sy < minY) minY = sy;
+          if (sx > maxX) maxX = sx;
+          if (sy > maxY) maxY = sy;
+        }
+      }
+    }
+    return { minX, minY, maxX, maxY };
+  }
+
+  // Cast a ray from the AABB center in the clock direction and return the point
+  // where it exits the AABB, offset outward by `padding` pixels.
+  _clockAnchorFromBounds(location, bounds, padding = 24) {
+    const { minX, minY, maxX, maxY } = bounds;
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+
+    const a = (location * 30 * Math.PI) / 180;
+    const dx = Math.sin(a);
+    const dy = -Math.cos(a); // screen coords: y down
+
+    let t = Infinity;
+    if (Math.abs(dx) > 1e-9)
+      t = Math.min(t, dx > 0 ? (maxX - cx) / dx : (minX - cx) / dx);
+    if (Math.abs(dy) > 1e-9)
+      t = Math.min(t, dy > 0 ? (maxY - cy) / dy : (minY - cy) / dy);
+    if (!isFinite(t) || t < 0) t = 80;
+
+    return { x: cx + (t + padding) * dx, y: cy + (t + padding) * dy, dx, dy };
+  }
+
+  _updateAnnotationLines() {
+    if (!this._annotations.size) return;
+    const bounds = this._getVisibleScreenBounds();
+
+    for (const annotation of this._annotations) {
+      const { _svgLine: line, _svgDot: dot } = annotation;
+      if (!line || !dot) continue;
+
+      const hide = () => { line.style.display = dot.style.display = "none"; };
+
+      if (annotation.hasAttribute("hidden") || !bounds || !this.currentModel) {
+        hide(); continue;
+      }
+
+      let targetPos;
+      try {
+        targetPos = this.getScreenPositionOfNode(annotation.getAttribute("target"));
+      } catch { hide(); continue; }
+
+      const anchor = this._clockAnchorFromBounds(
+        parseLocation(annotation.getAttribute("location")),
+        bounds,
+      );
+
+      // Card lives in the CSS2DObject (positioned at targetPos); offset by the delta
+      // to reach the clock anchor outside the visible-node bounding box.
+      if (annotation._card) {
+        annotation._card.style.left = `${anchor.x - targetPos.x}px`;
+        annotation._card.style.top = `${anchor.y - targetPos.y}px`;
+        annotation._card.style.transform = cardTransform(anchor.dx, anchor.dy);
+      }
+
+      dot.setAttribute("cx", String(targetPos.x));
+      dot.setAttribute("cy", String(targetPos.y));
+      line.setAttribute("x1", String(targetPos.x));
+      line.setAttribute("y1", String(targetPos.y));
+      line.setAttribute("x2", String(anchor.x));
+      line.setAttribute("y2", String(anchor.y));
+      line.style.display = dot.style.display = "";
+    }
   }
 
   _resize() {
@@ -611,6 +760,7 @@ class NotebookViewer extends HTMLElement {
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h);
     this.composer.setSize(w, h);
+    this._css2dRenderer.setSize(w, h);
   }
 }
 

@@ -45,7 +45,18 @@
 
     <div class="viewer-pane">
       <div class="viewer-wrapper">
-        <notebook-viewer id="viewer" src="{{model}}"></notebook-viewer>
+        <notebook-viewer id="viewer" src="{{model}}">
+            <notebook-annotation target="occurrence_of_Robot_Radio_(VH-109)" location="10">
+            <span slot="title">Arm Assembly</span>
+            <span slot="body">6061-T6 aluminum tube, 1×1 in.</span>
+            </notebook-annotation>
+
+            <notebook-annotation target="01_Chassis_<1>" location="2">
+            <span slot="title"><a href="#drivetrain">Drive Base</a></span>
+            <span slot="body">West Coast drive, 6-wheel drop center.</span>
+            </notebook-annotation>
+
+        </notebook-viewer>
         <div class="annotations-overlay" id="annotations-overlay"></div>
       </div>
     </div>
