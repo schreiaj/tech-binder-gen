@@ -133,6 +133,9 @@ class NotebookViewer extends HTMLElement {
     this.addEventListener("setview", (e) => this.transitionToView(e.detail));
     this.addEventListener("setstyle", (e) => this.setStyle(e.detail?.style));
     this.addEventListener("showmeshes", (e) => this.showMeshes(e.detail?.nodes ?? []));
+    this.addEventListener("annotation-connected", (e) => this._registerAnnotation(e.detail));
+    this.addEventListener("annotation-disconnected", (e) => this._unregisterAnnotation(e.detail));
+    this.addEventListener("annotation-target-changed", (e) => this._attachAnnotationToScene(e.detail));
 
     if (this.hasAttribute("src")) this._loadModel(this.getAttribute("src"));
 
@@ -808,9 +811,13 @@ class NotebookViewer extends HTMLElement {
     const h = this.clientHeight || 600;
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
-    this.renderer.setSize(w, h);
+    // Pass false so Three.js doesn't write inline px styles that override the
+    // Shadow DOM's "width:100%;height:100%" canvas rule.
+    this.renderer.setSize(w, h, false);
     this.composer.setSize(w, h);
     this._css2dRenderer.setSize(w, h);
+    this._lastCamPos = null; // force annotation lines to recompute screen positions
+    this._requestRender();
   }
 }
 

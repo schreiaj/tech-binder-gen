@@ -7,33 +7,32 @@ class NotebookAnnotation extends HTMLElement {
 
   constructor() {
     super();
-    this._viewer = null;
     this._css2dObj = null;
     this._observer = null;
+    this._syncQueued = false;
     this.style.display = "none"; // visuals live in the viewer's overlays
   }
 
   connectedCallback() {
     this._buildUI();
-    this._viewer = this.closest("notebook-viewer");
-    this._viewer?._registerAnnotation(this);
+    // Dispatch event so the viewer registers us regardless of upgrade order
+    this.dispatchEvent(new CustomEvent("annotation-connected", { bubbles: true, detail: this }));
 
-    this._observer = new MutationObserver(() => this._syncContent());
+    this._observer = new MutationObserver(() => this._queueSync());
     this._observer.observe(this, { childList: true, subtree: true, characterData: true });
     this._syncContent();
   }
 
   disconnectedCallback() {
     this._observer?.disconnect();
-    this._viewer?._unregisterAnnotation(this);
-    this._viewer = null;
+    this.dispatchEvent(new CustomEvent("annotation-disconnected", { bubbles: true, detail: this }));
   }
 
   attributeChangedCallback(name) {
     if (name === "hidden") {
       if (this._css2dObj) this._css2dObj.visible = !this.hasAttribute("hidden");
     } else if (name === "target") {
-      this._viewer?._attachAnnotationToScene(this);
+      this.dispatchEvent(new CustomEvent("annotation-target-changed", { bubbles: true, detail: this }));
     }
     // "location" is read each frame by viewer._updateAnnotationLines — no action needed here
   }
@@ -74,10 +73,19 @@ class NotebookAnnotation extends HTMLElement {
     this._css2dObj.visible = !this.hasAttribute("hidden");
   }
 
+  // Coalesce rapid MutationObserver callbacks into one sync per microtask checkpoint.
+  _queueSync() {
+    if (this._syncQueued) return;
+    this._syncQueued = true;
+    queueMicrotask(() => { this._syncQueued = false; this._syncContent(); });
+  }
+
   _syncContent() {
     if (!this._titleEl) return;
-    this._titleEl.innerHTML = this.querySelector('[slot="title"]')?.innerHTML ?? "";
-    this._bodyEl.innerHTML = this.querySelector('[slot="body"]')?.innerHTML ?? "";
+    const clone = (slot) =>
+      Array.from(this.querySelector(slot)?.childNodes ?? []).map((n) => n.cloneNode(true));
+    this._titleEl.replaceChildren(...clone('[slot="title"]'));
+    this._bodyEl.replaceChildren(...clone('[slot="body"]'));
   }
 }
 
