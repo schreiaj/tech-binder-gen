@@ -119,6 +119,9 @@ class NotebookViewer extends HTMLElement {
     this._dimmedMeshes = new Set();
     this._visAnims = new Map();
     this._renderRequested = true;
+    this._nodeMap = null;
+    this._lastCamPos = null;
+    this._lastCamTarget = null;
   }
 
   connectedCallback() {
@@ -139,11 +142,10 @@ class NotebookViewer extends HTMLElement {
   // Returns the world-space bounding-box center of all meshes under a named node,
   // or null if the node has no meshes.
   _getNodeWorldCenter(nodeName) {
+    const node = this._nodeMap?.get(nodeName);
+    if (!node) return null;
     const box = new THREE.Box3();
-    this.currentModel.traverse((c) => {
-      if (c.name === nodeName)
-        c.traverse((ch) => { if (ch.isMesh) box.expandByObject(ch); });
-    });
+    node.traverse((ch) => { if (ch.isMesh) box.expandByObject(ch); });
     return box.isEmpty() ? null : box.getCenter(new THREE.Vector3());
   }
 
@@ -162,6 +164,10 @@ class NotebookViewer extends HTMLElement {
   disconnectedCallback() {
     this._resizeObserver?.disconnect();
     cancelAnimationFrame(this._rafId);
+    if (this.currentModel) this._disposeObject(this.currentModel);
+    this._realisticEnv?.dispose();
+    this.composer?.dispose();
+    this._dracoLoader?.dispose();
     this.renderer?.dispose();
   }
 
@@ -228,6 +234,14 @@ class NotebookViewer extends HTMLElement {
     this._setupScene();
     this._setupPostProcessing();
     this._setupControls();
+    this._setupLoaders();
+  }
+
+  _setupLoaders() {
+    this._dracoLoader = new DRACOLoader();
+    this._dracoLoader.setDecoderPath("https://www.gstatic.com/draco/v1/decoders/");
+    this._gltfLoader = new GLTFLoader();
+    this._gltfLoader.setDRACOLoader(this._dracoLoader);
   }
 
   _setupRenderer() {
@@ -306,18 +320,17 @@ class NotebookViewer extends HTMLElement {
     if (!src) return;
 
     if (this.currentModel) {
+      this._disposeObject(this.currentModel);
       this.scene.remove(this.currentModel);
       this.currentModel = null;
     }
 
-    const dracoLoader = new DRACOLoader();
-    dracoLoader.setDecoderPath("https://www.gstatic.com/draco/v1/decoders/");
-
-    const loader = new GLTFLoader();
-    loader.setDRACOLoader(dracoLoader);
-
-    loader.load(src, (gltf) => {
+    this._gltfLoader.load(src, (gltf) => {
       this.currentModel = gltf.scene;
+
+      // Build name→object map for O(1) lookups in getNodeWorldCenter
+      this._nodeMap = new Map();
+      this.currentModel.traverse((c) => { if (c.name) this._nodeMap.set(c.name, c); });
 
       const box = new THREE.Box3().setFromObject(this.currentModel);
       box.getCenter(this._modelCenter);
@@ -619,6 +632,35 @@ class NotebookViewer extends HTMLElement {
     this._updateAnnotationLines();
   }
 
+  // Recursively dispose GPU resources (geometries, materials, textures) for a scene subtree.
+  _disposeObject(obj) {
+    const disposeMat = (mat) => {
+      if (!mat) return;
+      for (const val of Object.values(mat)) {
+        if (val?.isTexture) val.dispose();
+      }
+      mat.dispose();
+    };
+
+    obj.traverse((child) => {
+      child.geometry?.dispose();
+
+      const mats = Array.isArray(child.material) ? child.material : [child.material];
+      mats.forEach(disposeMat);
+
+      // Dispose per-style material variants stored during _loadModel
+      disposeMat(child.userData.originalMaterial);
+      disposeMat(child.userData.rallyMaterial);
+      disposeMat(child.userData.blueprintMaterial);
+
+      const edges = child.userData.blueprintEdges;
+      if (edges) {
+        edges.geometry?.dispose();
+        disposeMat(edges.material);
+      }
+    });
+  }
+
   // --- Annotation registry ---
 
   _registerAnnotation(annotation) {
@@ -713,6 +755,14 @@ class NotebookViewer extends HTMLElement {
 
   _updateAnnotationLines() {
     if (!this._annotations.size) return;
+
+    // Skip DOM updates when the camera hasn't moved since the last frame
+    const pos = this.camera.position;
+    const tgt = this.controls.target;
+    if (this._lastCamPos?.equals(pos) && this._lastCamTarget?.equals(tgt)) return;
+    (this._lastCamPos ??= new THREE.Vector3()).copy(pos);
+    (this._lastCamTarget ??= new THREE.Vector3()).copy(tgt);
+
     const bounds = this._getVisibleScreenBounds();
 
     for (const annotation of this._annotations) {
