@@ -1,127 +1,152 @@
 name: "Team 1234 — 2025 Engineering Notebook"
-logoWordmark: "HIGHTIDE"       # bold word in header logo lockup
-teamLabel: "TEAM 1234 | HIGHTECH"  # eyebrow text above chapter titles
+logoWordmark: "Toasty" # bold word in header logo lockup
+teamLabel: "TEAM 1234 | Brave Little Toasters" # eyebrow text above chapter titles
 year: "2025"
 logo: assets/images/logo.png
 model: assets/models/robot.glb
 template: default
 
-headers:
-  - title: "RIPCURRENT"
-    description: >
-      Our 2025 robot, designed around a ground-intake-to-shooter
-      workflow with a custom swerve drivetrain.
-    sections:
-      - title: "Overview"
-        tagline: "Built for speed. Designed to score."
-        description: >
-          RIPCURRENT is a full-field robot capable of picking up game pieces
-          from the ground and scoring at all levels. Every mechanism was
-          designed for reliability and servicability in a competition environment.
-        views:
-          - name: "Front"
-            displayedNodes: []
+chapters:
+  - Mechanical:
+      sections:
+        - Drivetrain:
+            title: Drivetrain
+            displayedNodes: ["Drivebase"]
             facing: N
             elevation: UPPER
             annotations:
-              - label: "SHOOTER"
-                description: "Four Kraken X44s on a 3\" flywheel."
-                position: left-top
-              - label: "BUMPERS"
-                description: "Structural bumpers that double as hopper walls and shooter mount."
-                position: left-bottom
-              - label: "TURRET"
-                description: "55.7:1 reduction with a flex-wheel cable-chain tensioner."
-                position: right-top
-              - label: "DRIVETRAIN"
-                description: "25×32\" swerve, geared 7.67:1 for lower current draw."
-                position: right-bottom
-          - name: "Top"
-            displayedNodes: []
-            facing: N
-            elevation: TOP
-            annotations:
-              - label: "INTAKE"
-                description: "Powered by 2 X60s and 1 X44 bottom bar."
-                position: left
-        images: []
+              - label: "6WD"
+                description: "Four Kraken X44s"
+                position: 11
+            images:
+              - src: assets/images/drivetrain_front.jpg
+                title: "Gearbox Assembly"
+                description: "Exploded view of the gearbox"
 
-  - title: "Drivetrain"
-    description: "Our swerve drive system designed for speed and precision."
-    sections:
-      - title: "Overview"
-        tagline: "Speed meets precision"
-        description: >
-          Our swerve drivetrain features custom-machined modules with
-          brushless drive and steer motors. Each module is independently
-          controlled for maximum maneuverability on any field obstacle.
-        views:
-          - name: "Front View"
-            displayedNodes:
-              - "Drivetrain"
-              - "Frame"
-            facing: N
-            elevation: MIDDLE
-            annotations:
-              - label: "DRIVE MOTOR"
-                description: "Kraken X60, 6.75:1 reduction."
-                position: left-top
-              - label: "STEER MOTOR"
-                description: "NEO 550, 13.37:1 reduction."
-                position: right-top
-          - name: "Top View"
-            displayedNodes:
-              - "Drivetrain"
-              - "Frame"
-            facing: N
-            elevation: TOP
-            annotations: []
-        images:
-          - src: assets/images/drivetrain_front.jpg
-            title: "Module Assembly"
-            description: "Exploded view of the swerve module"
+            features:
+              - |
+                Test Content
+                > First stuff
+              - |
+                Second Feature
+                > Some more neat stuff
 
-      - title: "Swerve Module"
-        tagline: "Custom machined for reliability"
-        description: >
-          Each module houses a Kraken X60 for drive and a NEO 550 for
-          steering. The bevel gear ratio provides a top speed of 16 ft/s
-          unrestricted.
-        views:
-          - name: "Module Detail"
-            displayedNodes:
-              - "Swerve_Module_FL"
-            facing: SE
-            elevation: UPPER
-            annotations:
-              - label: "BEVEL GEAR"
-                description: "2:1 ratio, custom 7075 aluminum."
-                position: right-top
-        images: []
+# headers:
+#   - title: "RIPCURRENT"
+#     description: >
+#       Our 2025 robot, designed around a ground-intake-to-shooter
+#       workflow with a custom swerve drivetrain.
+#     sections:
+#       - title: "Overview"
+#         tagline: "Built for speed. Designed to score."
+#         description: >
+#           RIPCURRENT is a full-field robot capable of picking up game pieces
+#           from the ground and scoring at all levels. Every mechanism was
+#           designed for reliability and servicability in a competition environment.
+#         views:
+#           - name: "Front"
+#             displayedNodes: []
+#             facing: N
+#             elevation: UPPER
+#             annotations:
+#               - label: "SHOOTER"
+#                 description: "Four Kraken X44s on a 3\" flywheel."
+#                 position: left-top
+#               - label: "BUMPERS"
+#                 description: "Structural bumpers that double as hopper walls and shooter mount."
+#                 position: left-bottom
+#               - label: "TURRET"
+#                 description: "55.7:1 reduction with a flex-wheel cable-chain tensioner."
+#                 position: right-top
+#               - label: "DRIVETRAIN"
+#                 description: "25×32\" swerve, geared 7.67:1 for lower current draw."
+#                 position: right-bottom
+#           - name: "Top"
+#             displayedNodes: []
+#             facing: N
+#             elevation: TOP
+#             annotations:
+#               - label: "INTAKE"
+#                 description: "Powered by 2 X60s and 1 X44 bottom bar."
+#                 position: left
+#         images: []
 
-  - title: "Intake"
-    description: "Ground intake capable of picking up both notes and coral."
-    sections:
-      - title: "Mechanism Overview"
-        tagline: "One mechanism, two game pieces"
-        description: >
-          The intake uses compliant rollers driven by a single NEO motor
-          through a 3:1 reduction. Sensor-based game piece detection
-          triggers automatic handoff to the indexer.
-        views:
-          - name: "Deployed"
-            displayedNodes:
-              - "Intake"
-            facing: W
-            elevation: MIDDLE
-            annotations:
-              - label: "ROLLERS"
-                description: "2\" compliant, 4500 RPM free speed."
-                position: right-top
-              - label: "PIVOT"
-                description: "Spring-loaded, gravity-assisted deploy."
-                position: right-bottom
-        images:
-          - src: assets/images/intake_extended.jpg
-            title: "Extended Position"
-            description: "Intake deployed for ground pickup"
+#   - title: "Drivetrain"
+#     description: "Our swerve drive system designed for speed and precision."
+#     sections:
+#       - title: "Overview"
+#         tagline: "Speed meets precision"
+#         description: >
+#           Our swerve drivetrain features custom-machined modules with
+#           brushless drive and steer motors. Each module is independently
+#           controlled for maximum maneuverability on any field obstacle.
+#         views:
+#           - name: "Front View"
+#             displayedNodes:
+#               - "Drivetrain"
+#               - "Frame"
+#             facing: N
+#             elevation: MIDDLE
+#             annotations:
+#               - label: "DRIVE MOTOR"
+#                 description: "Kraken X60, 6.75:1 reduction."
+#                 position: left-top
+#               - label: "STEER MOTOR"
+#                 description: "NEO 550, 13.37:1 reduction."
+#                 position: right-top
+#           - name: "Top View"
+#             displayedNodes:
+#               - "Drivetrain"
+#               - "Frame"
+#             facing: N
+#             elevation: TOP
+#             annotations: []
+#         images:
+#           - src: assets/images/drivetrain_front.jpg
+#             title: "Module Assembly"
+#             description: "Exploded view of the swerve module"
+
+#       - title: "Swerve Module"
+#         tagline: "Custom machined for reliability"
+#         description: >
+#           Each module houses a Kraken X60 for drive and a NEO 550 for
+#           steering. The bevel gear ratio provides a top speed of 16 ft/s
+#           unrestricted.
+#         views:
+#           - name: "Module Detail"
+#             displayedNodes:
+#               - "Swerve_Module_FL"
+#             facing: SE
+#             elevation: UPPER
+#             annotations:
+#               - label: "BEVEL GEAR"
+#                 description: "2:1 ratio, custom 7075 aluminum."
+#                 position: right-top
+#         images: []
+
+#   - title: "Intake"
+#     description: "Ground intake capable of picking up both notes and coral."
+#     sections:
+#       - title: "Mechanism Overview"
+#         tagline: "One mechanism, two game pieces"
+#         description: >
+#           The intake uses compliant rollers driven by a single NEO motor
+#           through a 3:1 reduction. Sensor-based game piece detection
+#           triggers automatic handoff to the indexer.
+#         views:
+#           - name: "Deployed"
+#             displayedNodes:
+#               - "Intake"
+#             facing: W
+#             elevation: MIDDLE
+#             annotations:
+#               - label: "ROLLERS"
+#                 description: "2\" compliant, 4500 RPM free speed."
+#                 position: right-top
+#               - label: "PIVOT"
+#                 description: "Spring-loaded, gravity-assisted deploy."
+#                 position: right-bottom
+#         images:
+#           - src: assets/images/intake_extended.jpg
+#             title: "Extended Position"
+#             description: "Intake deployed for ground pickup"

@@ -136,10 +136,11 @@ class NotebookViewer extends HTMLElement {
     this.addEventListener("annotation-connected", (e) => this._registerAnnotation(e.detail));
     this.addEventListener("annotation-disconnected", (e) => this._unregisterAnnotation(e.detail));
     this.addEventListener("annotation-target-changed", (e) => this._attachAnnotationToScene(e.detail));
+    this.addEventListener("annotation-visibility-changed", () => { this._lastCamPos = null; this._requestRender(); });
 
     if (this.hasAttribute("src")) this._loadModel(this.getAttribute("src"));
 
-    this._animate();
+    if (!this._rafId) this._animate();
   }
 
   // Returns the world-space bounding-box center of all meshes under a named node,
@@ -167,6 +168,7 @@ class NotebookViewer extends HTMLElement {
   disconnectedCallback() {
     this._resizeObserver?.disconnect();
     cancelAnimationFrame(this._rafId);
+    this._rafId = null;
     if (this.currentModel) this._disposeObject(this.currentModel);
     this._realisticEnv?.dispose();
     this.composer?.dispose();

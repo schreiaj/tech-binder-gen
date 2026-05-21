@@ -31,6 +31,7 @@ class NotebookAnnotation extends HTMLElement {
   attributeChangedCallback(name) {
     if (name === "hidden") {
       if (this._css2dObj) this._css2dObj.visible = !this.hasAttribute("hidden");
+      this.dispatchEvent(new CustomEvent("annotation-visibility-changed", { bubbles: true, detail: this }));
     } else if (name === "target") {
       this.dispatchEvent(new CustomEvent("annotation-target-changed", { bubbles: true, detail: this }));
     }

@@ -6,7 +6,7 @@
   <title>{{name}}</title>
   <link rel="stylesheet" href="assets/css/notebook.css">
 </head>
-<body>
+<body data-signals:chassis="false">
   <header class="notebook-header">
     <div class="header-logo">
       {{#if logo}}
@@ -22,6 +22,7 @@
       {{#each headers}}
         <a href="#chapter-{{@index}}" class="nav-link">{{title}}</a>
       {{/each}}
+      <a data-on:click="$chassis = !$chassis" data-text="$chassis ? 'Hide Chassis' : 'Show Chassis'">Toggle</a>
     </nav>
   </header>
 
@@ -51,7 +52,7 @@
             <span slot="body">6061-T6 aluminum tube, 1×1 in.</span>
             </notebook-annotation>
 
-            <notebook-annotation target="01_Chassis_<1>" location="2">
+            <notebook-annotation target="01_Chassis_<1>" location="2" data-attr:hidden="!$chassis">
             <span slot="title"><a href="#drivetrain">Drive Base</a></span>
             <span slot="body">West Coast drive, 6-wheel drop center.</span>
             </notebook-annotation>
