@@ -258,7 +258,14 @@ class NotebookViewer extends HTMLElement {
       center.z + r * Math.sin(polar) * Math.cos(azimuth),
     );
 
-    this._animateCamera(targetPos, center);
+    if (this._skipAnimation) {
+      this.camera.position.copy(targetPos);
+      this.controls.target.copy(center);
+      this.controls.update();
+      this._requestRender();
+    } else {
+      this._animateCamera(targetPos, center);
+    }
   }
 
   showMeshes(nodes = []) {
@@ -279,6 +286,7 @@ class NotebookViewer extends HTMLElement {
       canvas: this._canvas,
       antialias: true,
       alpha: true,
+      preserveDrawingBuffer: true,
     });
 
     this._setupRenderer();
@@ -446,6 +454,7 @@ class NotebookViewer extends HTMLElement {
         displayedNodes: [],
       });
       this._requestRender();
+      this.dispatchEvent(new CustomEvent("model-loaded", { detail: { src } }));
     });
   }
 

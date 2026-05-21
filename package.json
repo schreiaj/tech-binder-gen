@@ -7,7 +7,8 @@
     "build": "node scripts/build.js && vite build",
     "build:html": "node scripts/build.js",
     "preview": "vite preview --outDir dist",
-    "decimate": "node scripts/decimate_gltf.js"
+    "decimate": "node scripts/decimate_gltf.js",
+    "book": "npm run build && node scripts/book.js"
   },
   "dependencies": {
     "animejs": "^4.4.1",
@@ -17,6 +18,9 @@
     "handlebars": "^4.7.8",
     "js-yaml": "^4.1.0",
     "marked": "^18.0.4",
+    "mime-types": "^3.0.2",
+    "pdf-lib": "^1.17.1",
+    "puppeteer": "^24.43.1",
     "vite": "^5.3.0"
   }
 }

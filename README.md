@@ -185,6 +185,17 @@ npm run preview       # serve dist/ on http://localhost:4173
 
 Output lands in `dist/`. Deploy that folder anywhere (GitHub Pages, Netlify, etc.).
 
+## PDF export
+
+Generate a printable PDF book from the built site. Each scroll target (title page, table of contents, and every section) becomes its own page, with the 3D viewer rendered in the correct camera position behind the content card.
+
+```bash
+npm run book                  # portrait (Letter)
+npm run book -- --landscape   # landscape (Letter)
+```
+
+Output goes to `book/<page-title>.pdf`. The script runs a full build first, serves `dist/` locally, then uses Puppeteer to capture each page. Text remains as vectors (selectable/searchable), while the WebGL canvas is rasterized into the background.
+
 ## Deploying to GitHub Pages
 
 A workflow is included at `.github/workflows/deploy.yml`. To enable it:
@@ -254,6 +265,7 @@ Nodes not in `displayedNodes` are dimmed (desaturated + semi-transparent) with a
 │   └── models/                   # your decimated GLB
 ├── scripts/
 │   ├── build.js                  # config.yaml + templates → index.html
+│   ├── book.js                   # PDF book generator (Puppeteer)
 │   └── decimate_gltf.js          # gltfpack wrapper
 └── dist/                         # production build output
 ```
