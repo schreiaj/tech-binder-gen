@@ -106,6 +106,19 @@ class NotebookViewer extends HTMLElement {
     this._annotationSvg = document.createElementNS(SVG_NS, "svg");
     this._annotationSvg.id = "annotation-lines";
 
+    // foreignObject container inside SVG — cards are moved here during print
+    // so they scale with the viewBox just like lines and dots.
+    this._foCard = document.createElementNS(SVG_NS, "foreignObject");
+    this._foCard.setAttribute("width", "100%");
+    this._foCard.setAttribute("height", "100%");
+    this._foCard.style.overflow = "visible";
+    this._foCardDiv = document.createElement("div");
+    this._foCardDiv.style.cssText = "position:relative;width:100%;height:100%;";
+    this._foCard.appendChild(this._foCardDiv);
+    // Appended last so cards render on top of lines/dots in SVG paint order
+    // (new lines/dots are inserted before this element in _registerAnnotation)
+    this._annotationSvg.appendChild(this._foCard);
+
     shadow.append(style, this._canvas, this._annotationSvg, this._css2dRenderer.domElement);
 
     this._annotations = new Set();
@@ -129,6 +142,37 @@ class NotebookViewer extends HTMLElement {
 
     this._resizeObserver = new ResizeObserver(() => this._resize());
     this._resizeObserver.observe(this);
+
+    this._handleBeforePrint = () => {
+      // Synchronous render so the WebGL canvas has content for print capture
+      if (this.currentStyle === "rally") {
+        this.composer.render();
+      } else {
+        this.renderer.render(this.scene, this.camera);
+      }
+      // Move cards into the SVG foreignObject so they scale with the viewBox
+      for (const annotation of this._annotations) {
+        const a = annotation._cachedAnchor;
+        if (!a || !annotation._el || annotation.hasAttribute("hidden")) continue;
+        annotation._el.style.transform = `translate(${a.x}px, ${a.y}px)`;
+        annotation._card.style.left = "0";
+        annotation._card.style.top = "0";
+        annotation._card.style.transform = cardTransform(a.dx, a.dy);
+        annotation._card.style.boxShadow = "none";
+        this._foCardDiv.appendChild(annotation._el);
+      }
+    };
+    this._handleAfterPrint = () => {
+      for (const annotation of this._annotations) {
+        if (annotation._card) annotation._card.style.boxShadow = "";
+      }
+      // CSS2DRenderer will reclaim elements on next render; just force a re-render
+      this._lastCamPos = null;
+      this._requestRender();
+    };
+    window.addEventListener("beforeprint", this._handleBeforePrint);
+    window.addEventListener("afterprint", this._handleAfterPrint);
+    window.addEventListener("beforeprint", this._handleBeforePrint);
 
     this.addEventListener("setview", (e) => this.transitionToView(e.detail));
     this.addEventListener("setstyle", (e) => this.setStyle(e.detail?.style));
@@ -167,6 +211,8 @@ class NotebookViewer extends HTMLElement {
 
   disconnectedCallback() {
     this._resizeObserver?.disconnect();
+    window.removeEventListener("beforeprint", this._handleBeforePrint);
+    window.removeEventListener("afterprint", this._handleAfterPrint);
     cancelAnimationFrame(this._rafId);
     this._rafId = null;
     if (this.currentModel) this._disposeObject(this.currentModel);
@@ -676,7 +722,8 @@ class NotebookViewer extends HTMLElement {
     dot.setAttribute("r", "4");
     dot.style.display = "none";
 
-    this._annotationSvg.append(line, dot);
+    this._annotationSvg.insertBefore(line, this._foCard);
+    this._annotationSvg.insertBefore(dot, this._foCard);
     annotation._svgLine = line;
     annotation._svgDot = dot;
 
@@ -773,6 +820,10 @@ class NotebookViewer extends HTMLElement {
     (this._lastCamPos ??= new THREE.Vector3()).copy(pos);
     (this._lastCamTarget ??= new THREE.Vector3()).copy(tgt);
 
+    const w = this._canvas.clientWidth;
+    const h = this._canvas.clientHeight;
+    this._annotationSvg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+
     const bounds = this._getVisibleScreenBounds();
 
     for (const annotation of this._annotations) {
@@ -803,6 +854,9 @@ class NotebookViewer extends HTMLElement {
         annotation._card.style.transform = cardTransform(anchor.dx, anchor.dy);
       }
 
+      // Cache for print: beforeprint moves cards into SVG foreignObject at these coords
+      annotation._cachedAnchor = anchor;
+
       dot.setAttribute("cx", String(targetPos.x));
       dot.setAttribute("cy", String(targetPos.y));
       line.setAttribute("x1", String(targetPos.x));
@@ -826,6 +880,7 @@ class NotebookViewer extends HTMLElement {
     this._lastCamPos = null; // force annotation lines to recompute screen positions
     this._requestRender();
   }
+
 }
 
 customElements.define("notebook-viewer", NotebookViewer);
