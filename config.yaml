@@ -1,127 +1,62 @@
-name: "Team 1234"
-logoWordmark: "TESTBOT" # bold word in header logo lockup
-teamLabel: "TEAM 1234 | BLTs" # eyebrow text above chapter titles
-year: "2026"
-logo: assets/images/logo.png
+name: "Team 1234 — 2025 Engineering Notebook"
+logoWordmark: "Toasty" # bold word in header logo lockup
+teamLabel: "TEAM 1234 | Brave Little Toasters" # eyebrow text above chapter titles
+year: "2025"
+logo: assets/images/icon.webp
 model: assets/models/Everybot2026.glb
 template: default
+facing: NW
+elevation: UPPER
+annotations:
+  - label: Beast Mode Drivetrain
+    description: Allows rapid repositioning
+    position: 10
+    target: "01_Chassis_<1>"
+  - label: Wicked Fast Intake
+    description: Collects fuel quickly
+    position: 2
+    target: "03_Intake_<1>"
+  - label: Three's for Days
+    description: Enables reliable scoring
+    target: 05_Launcher_<1>
+    position: 5
 
-headers:
-  - title: "TOASTY"
-    description: >
-      Our 2026 robot, designed around a ground-intake-to-shooter
-      workflow with a custom swerve drivetrain.
-    sections:
-      - title: "Overview"
-        tagline: "Built for speed. Designed to score."
-        description: >
-          RIPCURRENT is a full-field robot capable of picking up game pieces
-          from the ground and scoring at all levels. Every mechanism was
-          designed for reliability and servicability in a competition environment.
-        views:
-          - name: "Front"
-            displayedNodes: []
-            facing: S
-            elevation: UPPER
-            annotations:
-              - label: "SHOOTER"
-                description: 'Four Kraken X44s on a 3" flywheel.'
-                position: left-top
-              - label: "BUMPERS"
-                description: "Structural bumpers that double as hopper walls and shooter mount."
-                position: left-bottom
-              - label: "TURRET"
-                description: "55.7:1 reduction with a flex-wheel cable-chain tensioner."
-                position: right-top
-              - label: "DRIVETRAIN"
-                description: '25×32" swerve, geared 7.67:1 for lower current draw.'
-                position: right-bottom
-          - name: "Top"
-            displayedNodes: []
-            facing: N
-            elevation: TOP
-            annotations:
-              - label: "INTAKE"
-                description: "Powered by 2 X60s and 1 X44 bottom bar."
-                position: left
-        images: []
-
-  - title: "Drivetrain"
-    description: "Our swerve drive system designed for speed and precision."
-    sections:
-      - title: "Drivetrain"
-        tagline: "Speed meets precision"
-        description: >
-          Our swerve drivetrain features custom-machined modules with
-          brushless drive and steer motors. Each module is independently
-          controlled for maximum maneuverability on any field obstacle.
-        views:
-          - name: "Front View"
-            displayedNodes:
-              - "01_Chassis_<1>"
-            facing: NW
-            elevation: UPPER
-            annotations:
-              - label: "DRIVE MOTOR"
-                description: "Kraken X60, 6.75:1 reduction."
-                position: left-top
-              - label: "STEER MOTOR"
-                description: "NEO 550, 13.37:1 reduction."
-                position: right-top
-          - name: "Top View"
-            displayedNodes:
-              - "Drivetrain"
-              - "Frame"
-            facing: NW
-            elevation: UPPER
-            annotations: []
-        images:
-          - src: assets/images/drivetrain_front.jpg
-            title: "Module Assembly"
-            description: "Exploded view of the swerve module"
-
-      - title: "Hopper"
-        tagline: "Custom machined for reliability"
-        description: >
-          Each module houses a Kraken X60 for drive and a NEO 550 for
-          steering. The bevel gear ratio provides a top speed of 16 ft/s
-          unrestricted.
-        views:
-          - name: "Module Detail"
-            displayedNodes:
-              - "04_Hopper_<1>"
-            facing: SE
-            elevation: UPPER
-            annotations:
-              - label: "BEVEL GEAR"
-                description: "2:1 ratio, custom 7075 aluminum."
-                position: right-top
-        images: []
-
-  - title: "Intake"
-    description: "Ground intake capable of picking up both notes and coral."
-    sections:
-      - title: "Mechanism Overview"
-        tagline: "One mechanism, two game pieces"
-        position: right
-        description: >
-          The intake uses compliant rollers driven by a single NEO motor
-          through a 3:1 reduction. Sensor-based game piece detection
-          triggers automatic handoff to the indexer.
-        views:
-          - name: "Deployed"
-            displayedNodes:
-              - "03_Intake_<1>"
+chapters:
+  - Mechanical:
+      sections:
+        - Drivetrain: # title of this section
+            id: drivebase #anchor id
+            displayedNodes: ["01_Chassis_<1>"]
             facing: NE
             elevation: UPPER
             annotations:
-              - label: "ROLLERS"
-                description: '2" compliant, 4500 RPM free speed.'
-                position: right-top
-              - label: "PIVOT"
-                description: "Spring-loaded, gravity-assisted deploy."
-                position: right-bottom
-        images:
-          - src: assets/images/intake_extended.jpg
-            title: "Extended Position"
-            description: "Intake deployed for ground pickup"
+              - label: "6WD"
+                description: "Four Kraken X44s"
+                position: 11
+            images:
+              - src: assets/images/drivetrain_front.jpg
+                title: "Gearbox Assembly"
+                description: "Exploded view of the gearbox"
+            features:
+              - |
+                Test Content
+                > First stuff
+              - |
+                Second Feature
+                > Some more neat stuff
+        - Intake: # title of this section
+            id: intake #anchor id
+            displayedNodes: ["03_Intake_<1>"]
+            facing: N
+            elevation: MIDDLE
+            annotations:
+              - label: "2x Krakens"
+                description: "More Power!"
+                position: 2
+            features:
+              - |
+                Test Content
+                > First stuff
+              - |
+                Second Feature
+                > Some more neat stuff

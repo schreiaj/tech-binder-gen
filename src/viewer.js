@@ -78,7 +78,7 @@ const ELEVATION_POLAR = {
 
 class NotebookViewer extends HTMLElement {
   static get observedAttributes() {
-    return ["src", "style-mode"];
+    return ["src", "style-mode", "facing", "elevation"];
   }
 
   constructor() {
@@ -395,8 +395,8 @@ class NotebookViewer extends HTMLElement {
       this._applyStyle();
       this._annotations.forEach((a) => this._attachAnnotationToScene(a));
       this.transitionToView({
-        facing: "N",
-        elevation: "MIDDLE",
+        facing: this.getAttribute("facing") ?? "N",
+        elevation: this.getAttribute("elevation") ?? "MIDDLE",
         displayedNodes: [],
       });
       this._requestRender();
@@ -692,10 +692,15 @@ class NotebookViewer extends HTMLElement {
   }
 
   _attachAnnotationToScene(annotation) {
+    if (!this.currentModel) return;
     const target = annotation.getAttribute("target");
-    if (!target || !this.currentModel) return;
-    const center = this._getNodeWorldCenter(target);
-    if (!center) return;
+    let center;
+    if (target) {
+      center = this._getNodeWorldCenter(target);
+      if (!center) return;
+    } else {
+      center = this._modelCenter.clone();
+    }
     annotation._css2dObj.removeFromParent();
     annotation._css2dObj.position.copy(center);
     this.scene.add(annotation._css2dObj);

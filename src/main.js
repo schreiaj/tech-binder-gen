@@ -8,7 +8,7 @@ if (!viewer) throw new Error("No #viewer element found");
 const scrollPane = document.querySelector(".scroll-pane");
 const main = document.querySelector(".notebook-main");
 const snapTargets = [
-  ...document.querySelectorAll(".chapter-title-card, .notebook-section"),
+  ...document.querySelectorAll(".notebook-title-page, .notebook-toc, .notebook-section"),
 ];
 
 const prevBtn = document.createElement("button");

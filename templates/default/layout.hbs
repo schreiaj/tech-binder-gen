@@ -6,12 +6,10 @@
   <title>{{name}}</title>
   <link rel="stylesheet" href="assets/css/notebook.css">
 </head>
-<body data-signals:chassis="false">
+<body data-signals="{currentSection:''}">
   <header class="notebook-header">
     <div class="header-logo">
-      {{#if logo}}
-        <img src="{{logo}}" alt="{{name}}" class="team-logo">
-      {{/if}}
+      {{#if logo}}<img src="{{logo}}" alt="{{name}}" class="team-logo">{{/if}}
       <span class="logo-text">
         <strong>{{logoWordmark}}</strong>
         <span class="logo-divider">|</span>
@@ -19,51 +17,74 @@
       </span>
     </div>
     <nav class="chapter-nav">
-      {{#each headers}}
-        <a href="#chapter-{{@index}}" class="nav-link">{{title}}</a>
+      {{#each chapters}}
+        <a href="#{{id}}" class="nav-link">{{name}}</a>
       {{/each}}
-      <a data-on:click="$chassis = !$chassis" data-text="$chassis ? 'Hide Chassis' : 'Show Chassis'">Toggle</a>
     </nav>
   </header>
 
   <main class="notebook-main">
     <div class="scroll-pane">
-      {{#each headers}}
-        <div class="notebook-chapter" id="chapter-{{@index}}">
-          <div class="chapter-title-card">
-            <div class="chapter-title-text">
-              {{#if ../teamLabel}}<p class="chapter-eyebrow">{{../teamLabel}}</p>{{/if}}
-              <h2>{{title}}</h2>
-              {{#if description}}<p class="chapter-description">{{description}}</p>{{/if}}
+
+      <div class="notebook-title-page">
+        {{#if teamLabel}}<p class="chapter-eyebrow">{{teamLabel}}</p>{{/if}}
+        <h1 class="title-page-name">{{logoWordmark}}</h1>
+      </div>
+
+      <div class="notebook-toc">
+        <div class="toc-card">
+          <h2 class="toc-title">Contents</h2>
+          {{#each chapters}}
+            <div class="toc-chapter">
+              <a href="#{{id}}" class="toc-chapter-link">{{name}}</a>
+              <ul class="toc-sections">
+                {{#each sections}}
+                  <li><a href="#{{id}}" class="toc-section-link">{{name}}</a></li>
+                {{/each}}
+              </ul>
             </div>
-          </div>
+          {{/each}}
+        </div>
+      </div>
+
+      {{#each chapters}}
+        <div class="notebook-chapter" id="{{id}}">
           {{#each sections}}
             {{> section}}
           {{/each}}
         </div>
       {{/each}}
+
     </div>
 
     <div class="viewer-pane">
       <div class="viewer-wrapper">
-        <notebook-viewer id="viewer" src="{{model}}">
-            <notebook-annotation target="occurrence_of_Robot_Radio_(VH-109)" location="10">
-            <span slot="title">Arm Assembly</span>
-            <span slot="body">6061-T6 aluminum tube, 1×1 in.</span>
+        <notebook-viewer id="viewer" data-ref="viewer" src="{{model}}"
+          facing="{{facing}}" elevation="{{elevation}}">
+          {{#each annotations}}
+            <notebook-annotation target="{{target}}" location="{{position}}"
+              data-attr:hidden="$currentSection !== ''">
+              <span slot="title">{{label}}</span>
+              <span slot="body">{{description}}</span>
             </notebook-annotation>
-
-            <notebook-annotation target="01_Chassis_<1>" location="2" data-attr:hidden="!$chassis">
-            <span slot="title"><a href="#drivetrain">Drive Base</a></span>
-            <span slot="body">West Coast drive, 6-wheel drop center.</span>
-            </notebook-annotation>
-
+          {{/each}}
+          {{#each chapters}}
+            {{#each sections}}
+              {{#each annotations}}
+                <notebook-annotation target="{{target}}" location="{{position}}"
+                  data-attr:hidden="$currentSection !== '{{../id}}'">
+                  <span slot="title">{{label}}</span>
+                  <span slot="body">{{description}}</span>
+                </notebook-annotation>
+              {{/each}}
+            {{/each}}
+          {{/each}}
         </notebook-viewer>
-        <div class="annotations-overlay" id="annotations-overlay"></div>
       </div>
     </div>
   </main>
 
-  <script type="module" src="/src/main.js"></script>
   <script type="module" src="/vendor/datastar.js"></script>
+  <script type="module" src="/src/main.js"></script>
 </body>
 </html>

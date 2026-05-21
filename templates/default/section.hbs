@@ -1,28 +1,11 @@
-<section id="drivetrain" class="notebook-section{{#if position}} notebook-section--{{position}}{{/if}}" data-views="{{views_json}}">
-    <div
-        class="section-card"
-        data-on-intersect__full__debounce.50ms='viewer.dispatchEvent(new CustomEvent("setview", { detail:{{{first_view_json}}} }))'
-    >
-        {{#if title}}
-        <h3 class="section-title">{{title}}</h3>
-        {{/if}} {{#if tagline}}
-        <p class="section-tagline">{{tagline}}</p>
-        {{/if}} {{#if description}}
-        <p class="section-description">{{description}}</p>
-        {{/if}} {{#if images}}
-        <div class="section-images">
-            {{#each images}}
-            <figure class="section-image">
-                <img src="{{src}}" alt="{{title}}" loading="lazy" />
-                {{#if title}}
-                <figcaption>
-                    <strong>{{title}}</strong>
-                    {{#if description}} — {{description}}{{/if}}
-                </figcaption>
-                {{/if}}
-            </figure>
-            {{/each}}
-        </div>
-        {{/if}}
-    </div>
+<section id="{{id}}" class="notebook-section"
+  data-on-intersect__full__debounce.50ms="{{setviewExpr}}"
+  data-on-intersect__exit__debounce.50ms="$currentSection='';$viewer.dispatchEvent(new CustomEvent('showmeshes',{detail:{nodes:[]}}))"
+  >
+  <div class="section-card">
+    <h3 class="section-title">{{chapterName}}:{{name}}</h3>
+    {{#each features}}
+      <div class="section-feature">{{this}}</div>
+    {{/each}}
+  </div>
 </section>
