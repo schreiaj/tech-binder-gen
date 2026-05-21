@@ -1,13 +1,16 @@
 # FRC Engineering Notebook Generator
 
-A static site generator for FRC engineering notebooks. Feed it a GLTF of your robot and a YAML config; get a single-page scrolling notebook where the 3D model updates as you read.
+A static site generator for FRC engineering notebooks. Feed it a GLB of your robot and a YAML config; get a single-page scrolling notebook where the 3D model updates as you read.
 
 ## How it works
 
-- **Left pane**: scrollable sections — title, description, images
-- **Right pane**: sticky `<notebook-viewer>` web component (Three.js) that transitions camera and node visibility as each section scrolls into view
-- **Three render styles**: Realistic (PBR + glass), Rally (toon + bloom), Blueprint (edge lines on deep blue)
-- **Datastar** handles reactive UI — style buttons, intersection-driven view transitions
+The page is a full-viewport scroll experience with three snap sections before any chapter content:
+
+1. **Title page** — robot name + team label over the 3D viewer
+2. **Table of contents** — chapter and section links
+3. **Sections** — frosted cards with markdown content, images, and callout annotations
+
+The right-side `<notebook-viewer>` web component (Three.js) is always visible. As each section scrolls into view, [Datastar](https://data-star.dev) intersection observers fire `setview` events that transition the camera and filter which robot nodes are highlighted. Annotations float around the model and are shown/hidden per section.
 
 ## Setup
 
@@ -38,57 +41,83 @@ node scripts/decimate_gltf.js robot.gltf -s 0.6   # less aggressive
 node scripts/decimate_gltf.js robot.gltf -s 0.25  # more aggressive
 ```
 
-Or via the npm script:
-```bash
-npm run decimate -- robot.gltf -o assets/models/robot.glb
-```
-
 Place images in `assets/images/`.
 
 ## Configuration
 
-Edit `config.yaml`:
+Copy `config.example.yaml` to `config.yaml` and edit it. Run `node scripts/build.js` (or `npm run dev`) to regenerate `index.html`.
+
+### Full config reference
 
 ```yaml
-name: "Team 1234 — 2025 Engineering Notebook"
-logoWordmark: "HIGHTIDE"           # bold word in header logo lockup
-teamLabel: "TEAM 1234 | HIGHTECH"  # eyebrow text above chapter titles
+# ── Identity ────────────────────────────────────────────────────────────────
+name: "Team 1234 — 2025 Engineering Notebook"  # browser tab title
+logoWordmark: "Toasty"        # bold word in the header logo lockup
+teamLabel: "TEAM 1234 | Brave Little Toasters" # eyebrow text on the title page
 year: "2025"
-logo: assets/images/logo.png
+logo: assets/images/logo.png  # team logo shown in the header (optional)
 model: assets/models/robot.glb
-template: default
 
-headers:
-  - title: "RIPCURRENT"           # chapter title (robot name for overview chapter)
-    description: "Brief chapter description."
-    sections:
-      - title: "Overview"
-        tagline: "Built for speed. Designed to score."
-        description: >
-          Longer explanation of the mechanism, design decisions, etc.
-        views:
-          - name: "Front"
+template: default             # template folder under templates/ (default: "default")
+
+# ── Initial camera position (shown on title and TOC pages) ──────────────────
+facing: NW                    # N NE E SE S SW W NW
+elevation: UPPER              # TOP UPPER MIDDLE LOWER BOTTOM
+
+# ── Root annotations (visible on title/TOC pages, hidden inside sections) ───
+annotations:
+  - label: Powerful Drivetrain
+    description: Allows rapid repositioning
+    position: 3               # clock position 0–11 (see reference below)
+    target: 01_Chassis_<1>    # mesh name to anchor to; omit to use model center
+
+# ── Chapters ─────────────────────────────────────────────────────────────────
+chapters:
+  - Mechanical:               # chapter name (used in nav + TOC)
+      sections:
+        - Drivetrain:         # section name
+            id: drivebase     # URL anchor id (used by TOC links + Datastar signal)
+
+            # Camera + node visibility for this section
             displayedNodes:
-              - "Swerve_Module_FL"   # exact node names from your GLTF
-                                     # empty list [] shows the whole robot
-            facing: N                # N NE E SE S SW W NW
-            elevation: MIDDLE        # TOP UPPER MIDDLE LOWER BOTTOM
-            annotations:             # callout labels that float around the model
-              - label: "DRIVETRAIN"
-                description: "25×32\" swerve, geared 7.67:1."
-                position: right-bottom   # see annotation positions below
-              - label: "SHOOTER"
-                description: "Four Kraken X44s on a 3\" flywheel."
-                position: left-top
-        images:
-          - src: assets/images/module.jpg
-            title: "Module Assembly"
-            description: "Exploded view"
+              - "01_Chassis_<1>"   # exact node names from your GLB
+                                   # omit or use [] to show the whole robot
+            facing: NE
+            elevation: UPPER
+
+            # Per-section annotations (visible only while this section is active)
+            annotations:
+              - label: "6WD"
+                description: "Four Kraken X44s"
+                position: 11        # clock position 0–11
+                # target defaults to displayedNodes[0] if omitted
+
+            # Markdown content blocks (GitHub Flavored Markdown)
+            features:
+              - |
+                **Why 6WD?** Extra traction for defense and rough terrain.
+                > 3" colson wheels, 6.8:1 reduction
+              - |
+                **Motors** Four Kraken X44s, current-limited to 60 A each.
+
+            # Photo gallery
+            images:
+              - src: assets/images/drivetrain_front.jpg
+                title: "Gearbox Assembly"
+                description: "Exploded view of the gearbox"
 ```
+
+### How the YAML is processed
+
+1. **Build script** (`scripts/build.js`) loads `config.yaml` with `js-yaml`, normalizes the data, and renders `templates/default/layout.hbs` + `templates/default/section.hbs` via Handlebars into `index.html`.
+2. **Chapter normalization** — each chapter gets an auto-generated `id` (`chapter-0`, `chapter-1`, …). Section `id` comes from the config field if present, otherwise `section-{ci}-{si}`.
+3. **Annotation normalization** — section annotations without an explicit `target` default to `displayedNodes[0]`. Root annotations without a `target` anchor to the model's bounding-box center at runtime.
+4. **Features** — each string in `features` is parsed as GitHub Flavored Markdown by [marked](https://marked.js.org) and injected as raw HTML into the section card.
+5. **Assets** — everything under `assets/` is copied to `public/assets/` so Vite serves it at `/assets/…`.
 
 ### Finding node names
 
-Open `example.html` in a browser, load your GLTF with the file picker, and use the Node Inspector panel to browse the scene hierarchy and find exact node names.
+Open your GLB in a GLTF viewer (e.g. [gltf.report](https://gltf.report)) and inspect the scene hierarchy. Node names must match exactly, including any `<1>` instance suffixes added by some CAD exporters.
 
 ### `facing` reference
 
@@ -112,36 +141,33 @@ Open `example.html` in a browser, load your GLTF with the file picker, and use t
 
 ### Annotation `position` reference
 
-Annotations float around the sticky 3D viewer with a hairline connecting line, mirroring the callout style on technical engineering drawings.
+Positions follow a clock face (0 = 12 o'clock, increasing clockwise). The viewer places the label card at that clock position around the 3D anchor point with a hairline connector.
 
-| Value          | Location                    |
-|----------------|-----------------------------|
-| `left-top`     | Left side, upper zone       |
-| `left`         | Left side, vertically centered |
-| `left-bottom`  | Left side, lower zone       |
-| `right-top`    | Right side, upper zone      |
-| `right`        | Right side, vertically centered |
-| `right-bottom` | Right side, lower zone      |
+| Value | Location |
+|-------|----------|
+| `0`   | 12 o'clock (top) |
+| `1`–`2` | Upper right |
+| `3`   | 3 o'clock (right) |
+| `4`–`5` | Lower right |
+| `6`   | 6 o'clock (bottom) |
+| `7`–`8` | Lower left |
+| `9`   | 9 o'clock (left) |
+| `10`–`11` | Upper left |
 
 ## Development
 
 ```bash
-npm run dev           # build HTML → index.html, then start Vite dev server with HMR
+npm run dev   # build HTML → index.html, then start Vite dev server
 ```
 
-Editing `src/viewer.js` or `src/main.js` triggers instant HMR. Editing `config.yaml` or any template triggers a full page reload automatically.
+Editing `src/viewer.js` or `src/main.js` triggers instant HMR. After editing `config.yaml` or a template, re-run `node scripts/build.js` and refresh.
 
 ## Building
 
 ```bash
-# Generate HTML + bundle JS → dist/
-npm run build
-
-# Or run steps separately
-npm run build:html    # → index.html (project root)
-
-# Preview the production build locally
-npm run preview       # serves dist/ on http://localhost:4173
+npm run build         # generate HTML + bundle JS → dist/
+npm run build:html    # generate index.html only (no Vite bundle)
+npm run preview       # serve dist/ on http://localhost:4173
 ```
 
 Output lands in `dist/`. Deploy that folder anywhere (GitHub Pages, Netlify, etc.).
@@ -151,70 +177,68 @@ Output lands in `dist/`. Deploy that folder anywhere (GitHub Pages, Netlify, etc
 A workflow is included at `.github/workflows/deploy.yml`. To enable it:
 
 1. In your repo settings, go to **Pages → Source** and select **GitHub Actions**.
-2. Commit your `config.yaml` (required for the build). If it isn't committed, the workflow falls back to `config.example.yaml` automatically.
-3. Push to `main` — the site will build and deploy automatically.
-
-You can also trigger a deployment manually from the **Actions** tab via `workflow_dispatch`.
+2. Commit your `config.yaml`. If it isn't committed, the workflow falls back to `config.example.yaml`.
+3. Push to `main` — the site builds and deploys automatically.
 
 ## `<notebook-viewer>` web component
 
-The 3D viewer is a self-contained custom element. Control it by dispatching custom events on the element:
+The 3D viewer is a self-contained custom element. Control it by dispatching custom events:
 
 ```js
 const viewer = document.getElementById("viewer");
 
-// Transition to a named camera position and filter visible nodes
+// Transition camera and filter visible nodes
 viewer.dispatchEvent(new CustomEvent("setview", {
   detail: {
     facing: "N",             // N NE E SE S SW W NW  (default: "N")
     elevation: "MIDDLE",     // TOP UPPER MIDDLE LOWER BOTTOM  (default: "MIDDLE")
-    displayedNodes: [],      // node names to highlight; [] = show all
+    displayedNodes: [],      // mesh names to highlight; [] = show all
   }
 }));
 
-// Switch render style
-viewer.dispatchEvent(new CustomEvent("setstyle", {
-  detail: { style: "realistic" }   // "realistic" | "rally" | "blueprint"
-}));
-
 // Restore all nodes to full visibility (no camera change)
-viewer.dispatchEvent(new CustomEvent("showallnodes"));
+viewer.dispatchEvent(new CustomEvent("showmeshes", {
+  detail: { nodes: [] }
+}));
 ```
 
-**Node visibility** — nodes not in `displayedNodes` are dimmed (desaturated + semi-transparent) in Realistic mode, and hidden outright in Rally/Blueprint mode. The camera zooms to fit only the displayed nodes. After any transition the user can freely orbit.
+Nodes not in `displayedNodes` are dimmed (desaturated + semi-transparent) with an animated 400 ms transition. The camera zooms to fit the displayed nodes. After any transition the user can freely orbit.
 
-**HTML usage:**
+**HTML attributes:**
 ```html
-<notebook-viewer id="viewer" src="assets/models/robot.glb"></notebook-viewer>
+<notebook-viewer
+  id="viewer"
+  src="assets/models/robot.glb"
+  facing="NW"
+  elevation="UPPER">
+</notebook-viewer>
 ```
+
+`facing` and `elevation` set the initial camera position after the model loads.
 
 ## Project structure
 
 ```
-├── config.yaml               # your notebook config (gitignore if desired)
-├── config.example.yaml       # reference / starting point
-├── index.html                # generated by build.js — do not edit (gitignore this)
-├── example.html              # standalone GLTF explorer for finding node names
+├── config.yaml                   # your notebook config
+├── config.example.yaml           # reference / starting point
+├── index.html                    # generated by build.js — do not edit
 ├── templates/
-│   ├── layout.hbs            # page shell (header, two-pane layout)
-│   └── section.hbs           # per-section card partial
+│   └── default/
+│       ├── layout.hbs            # page shell (header, two-pane layout, annotation loop)
+│       └── section.hbs           # per-section card partial
 ├── src/
-│   ├── viewer.js             # <notebook-viewer> web component (Three.js + anime.js)
-│   ├── main.js               # page entry point — imports viewer, sets up scroll observer
-│   └── datastar.js           # (if present) custom Datastar signal setup
+│   ├── viewer.js                 # <notebook-viewer> web component (Three.js + anime.js)
+│   ├── annotation.js             # <notebook-annotation> web component
+│   └── main.js                   # scroll snap prev/next button controller
 ├── public/
 │   └── vendor/
-│       └── datastar.js       # Datastar library (served as-is, not bundled by Vite)
+│       └── datastar.js           # Datastar library (served as-is)
 ├── assets/
-│   ├── css/notebook.css
-│   ├── images/               # put your photos here
-│   └── models/               # put decimated GLB here
+│   ├── css/notebook.css          # source stylesheet (edit this)
+│   ├── images/                   # your photos
+│   └── models/                   # your decimated GLB
 ├── scripts/
-│   ├── build.js              # config.yaml + templates → index.html, assets → public/
-│   └── decimate_gltf.js      # gltfpack wrapper
-└── dist/                     # production build output (deploy this)
+│   ├── build.js                  # config.yaml + templates → index.html
+│   └── decimate_gltf.js          # gltfpack wrapper
+└── dist/                         # production build output
 ```
-
-## Codespace / devcontainer
-
-Open in GitHub Codespaces or VS Code Dev Containers — `.devcontainer/devcontainer.json` uses the official Node 20 image and runs `npm install` automatically on container start.
