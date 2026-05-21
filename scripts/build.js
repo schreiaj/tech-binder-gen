@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * Build script: reads config.yaml, renders Handlebars templates → index.html
- * Usage: node scripts/build.js [path/to/config.yaml]
+ * Build script: reads every YAML file in pages/, renders each to an HTML file at project root.
+ * Usage: node scripts/build.js
  */
-import { readFileSync, writeFileSync, existsSync, mkdirSync, cpSync } from "fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, cpSync, readdirSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import yaml from "js-yaml";
@@ -13,22 +13,20 @@ import { marked } from "marked";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
 const TEMPLATES = resolve(ROOT, "templates");
+const PAGES_DIR = resolve(ROOT, "pages");
 
-// Load config
-const configPath = resolve(ROOT, process.argv.find((a) => a.endsWith(".yaml")) ?? "config.yaml");
-if (!existsSync(configPath)) {
-  console.error(`Config not found: ${configPath}`);
-  console.error("Copy config.example.yaml to config.yaml and edit it.");
+if (!existsSync(PAGES_DIR)) {
+  console.error("No pages/ directory found. Create it and add YAML config files.");
   process.exit(1);
 }
 
-const config = yaml.load(readFileSync(configPath, "utf8"));
-
-// Load templates using the template name from config (defaults to "default")
-const TEMPLATE_DIR = resolve(TEMPLATES, config.template ?? "default");
+// ── Markdown ────────────────────────────────────────────────────────────────
 marked.use({ gfm: true });
 
-const escHtml = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/'/g, "&#39;");
+// ── Handlebars helpers ───────────────────────────────────────────────────────
+const escHtml = (s) =>
+  String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/'/g, "&#39;");
+
 Handlebars.registerHelper("setviewExpr", function () {
   const { id, facing = "N", elevation = "MIDDLE", displayedNodes = [] } = this;
   const nodes = displayedNodes.map((n) => `'${escHtml(n)}'`).join(",");
@@ -36,31 +34,55 @@ Handlebars.registerHelper("setviewExpr", function () {
     `$currentSection='${id}';$viewer.dispatchEvent(new CustomEvent('setview',{detail:{facing:'${facing}',elevation:'${elevation}',displayedNodes:[${nodes}]}}))`
   );
 });
-Handlebars.registerPartial("section", readFileSync(resolve(TEMPLATE_DIR, "section.hbs"), "utf8"));
-const layout = Handlebars.compile(readFileSync(resolve(TEMPLATE_DIR, "layout.hbs"), "utf8"));
 
-// Normalize root-level annotations
-config.annotations = (config.annotations ?? []);
+// ── Per-page normalization ───────────────────────────────────────────────────
+function normalizePage(config) {
+  config.annotations = config.annotations ?? [];
 
-// Normalize chapters: [{ChapterName: {sections: [{SectionName: {...}}]}}]
-// → [{name, id, sections: [{name, chapterName, chapterId, id, ...sectionData}]}]
-config.chapters = (config.chapters ?? []).map((chapterObj, ci) => {
-  const [chapterName, chapterData] = Object.entries(chapterObj)[0];
-  const sections = (chapterData.sections ?? []).map((sectionObj, si) => {
-    const [sectionName, sectionData] = Object.entries(sectionObj)[0];
-    const defaultTarget = (sectionData.displayedNodes ?? [])[0] ?? "";
-    const annotations = (sectionData.annotations ?? []).map((ann) => ({ target: defaultTarget, ...ann }));
-    const features = (sectionData.features ?? []).map((f) => new Handlebars.SafeString(marked.parse(String(f))));
-    return { name: sectionName, chapterName, chapterId: `chapter-${ci}`, id: `section-${ci}-${si}`, ...sectionData, annotations, features };
+  config.chapters = (config.chapters ?? []).map((chapterObj, ci) => {
+    const [chapterName, chapterData] = Object.entries(chapterObj)[0];
+    const sections = (chapterData.sections ?? []).map((sectionObj, si) => {
+      const [sectionName, sectionData] = Object.entries(sectionObj)[0];
+      const defaultTarget = (sectionData.displayedNodes ?? [])[0] ?? "";
+      const annotations = (sectionData.annotations ?? []).map((ann) => ({ target: defaultTarget, ...ann }));
+      const features = (sectionData.features ?? []).map((f) => new Handlebars.SafeString(marked.parse(String(f))));
+      return {
+        name: sectionName,
+        chapterName,
+        chapterId: `chapter-${ci}`,
+        id: `section-${ci}-${si}`,
+        ...sectionData,
+        annotations,
+        features,
+      };
+    });
+    return { name: chapterName, id: `chapter-${ci}`, sections };
   });
-  return { name: chapterName, id: `chapter-${ci}`, sections };
-});
 
-// Render index.html at project root (Vite's entry point for both dev and build)
-writeFileSync(resolve(ROOT, "index.html"), layout(config));
-console.log("  wrote index.html");
+  return config;
+}
 
-// Copy assets → public/ (Vite's publicDir — served at /assets/... in dev, copied to dist/ on build)
+// ── Process each YAML in pages/ ──────────────────────────────────────────────
+const yamlFiles = readdirSync(PAGES_DIR).filter((f) => /\.ya?ml$/.test(f));
+
+if (yamlFiles.length === 0) {
+  console.error("No YAML files found in pages/");
+  process.exit(1);
+}
+
+for (const yamlFile of yamlFiles) {
+  const config = normalizePage(yaml.load(readFileSync(resolve(PAGES_DIR, yamlFile), "utf8")));
+
+  const TEMPLATE_DIR = resolve(TEMPLATES, config.template ?? "default");
+  Handlebars.registerPartial("section", readFileSync(resolve(TEMPLATE_DIR, "section.hbs"), "utf8"));
+  const layout = Handlebars.compile(readFileSync(resolve(TEMPLATE_DIR, "layout.hbs"), "utf8"));
+
+  const outFile = yamlFile.replace(/\.ya?ml$/, ".html");
+  writeFileSync(resolve(ROOT, outFile), layout(config));
+  console.log(`  wrote ${outFile}`);
+}
+
+// ── Copy assets → public/ ────────────────────────────────────────────────────
 const srcAssets = resolve(ROOT, "assets");
 if (existsSync(srcAssets)) {
   mkdirSync(resolve(ROOT, "public"), { recursive: true });
