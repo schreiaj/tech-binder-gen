@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{name}}</title>
-  <link rel="stylesheet" href="assets/css/notebook.css">
+  <link rel="stylesheet" href="assets/css/layouts/default/layout.css">
+  <link rel="stylesheet" href="assets/css/overrides.css">
 </head>
 <body data-signals="{currentSection:'', viewerSide:''}"
   data-on:keydown="if(['ArrowDown','PageDown'].includes(evt.key)){evt.preventDefault();$scrollPane.scrollBy({top:window.innerHeight,behavior:'smooth'})}if(['ArrowUp','PageUp'].includes(evt.key)){evt.preventDefault();$scrollPane.scrollBy({top:-window.innerHeight,behavior:'smooth'})}">
@@ -68,20 +69,12 @@
         <notebook-viewer id="viewer" data-ref="viewer" src="{{model}}"
           facing="{{facing}}" elevation="{{elevation}}">
           {{#each annotations}}
-            <notebook-annotation target="{{target}}" location="{{position}}"
-              data-attr:hidden="$currentSection !== ''">
-              <span slot="title">{{label}}</span>
-              <span slot="body">{{description}}</span>
-            </notebook-annotation>
+            {{> annotation sectionId=""}}
           {{/each}}
           {{#each chapters}}
             {{#each sections}}
               {{#each annotations}}
-                <notebook-annotation target="{{target}}" location="{{position}}"
-                  data-attr:hidden="$currentSection !== '{{../id}}'">
-                  <span slot="title">{{label}}</span>
-                  <span slot="body">{{description}}</span>
-                </notebook-annotation>
+                {{> annotation sectionId=../id}}
               {{/each}}
             {{/each}}
           {{/each}}

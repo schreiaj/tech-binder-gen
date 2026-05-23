@@ -1,0 +1,37 @@
+/*
+ * Brand overrides
+ * ───────────────────────────────────────────────────────────────
+ * Set these CSS custom properties to match your team's brand.
+ * This file is intentionally separate from the layout template so
+ * you can update the template without losing your customizations.
+ *
+ * Uncomment and edit the variables you want to change.
+ * Any variable left commented out will use the layout's default.
+ *
+ * Usage:
+ *   --brand-bg            Page and card background color.
+ *   --brand-primary       Main text color.
+ *   --brand-secondary     Muted / secondary text color.
+ *   --brand-accent        Decorative accent (annotation lines, active
+ *                         borders, 3-D viewer bloom color).
+ *   --brand-accent-text   Text-safe accent for headings and active
+ *                         nav links. Usually a darker shade of accent.
+ *
+ * Example — a blue/gold team palette:
+ *
+ *   --brand-bg:          #f4f6fb;
+ *   --brand-primary:     #0d1b2a;
+ *   --brand-secondary:   #4a5568;
+ *   --brand-accent:      #f6c90e;
+ *   --brand-accent-text: #7a6000;
+ *
+ * ───────────────────────────────────────────────────────────────
+ */
+
+:root {
+    /* --brand-bg:          #f0ebe4; */
+    /* --brand-primary:     #1a1a1a; */
+    /* --brand-secondary:   #666660; */
+    /* --brand-accent:      rgba(255, 170, 61); */
+    /* --brand-accent-text: #8b5e00; */
+}

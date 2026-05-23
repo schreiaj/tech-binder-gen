@@ -8,14 +8,21 @@
 }
 
 :root {
-    --bg: #f0ebe4;
-    --text: #1a1a1a;
-    --text-muted: #666660;
-    /*--accent: #00a99d;*/
-    --accent: rgba(255, 170, 61);
-    --accent-text: #8b5e00;
-    --border: rgba(0, 0, 0, 0.1);
-    --header-h: 48px;
+    /* ── Brand variables — override these to theme the layout ── */
+    --brand-bg:          #f0ebe4;
+    --brand-primary:     #1a1a1a;
+    --brand-secondary:   #666660;
+    --brand-accent:      rgba(255, 170, 61);
+    --brand-accent-text: #8b5e00;
+
+    /* ── Layout tokens (derived from brand) ─────────────────── */
+    --bg:          var(--brand-bg);
+    --text:        var(--brand-primary);
+    --text-muted:  var(--brand-secondary);
+    --accent:      var(--brand-accent);
+    --accent-text: var(--brand-accent-text);
+    --border:      rgba(0, 0, 0, 0.1);
+    --header-h:    48px;
 }
 
 html,
@@ -140,237 +147,6 @@ body {
     pointer-events: none;
 }
 
-#viewer-canvas {
-    width: 100%;
-    height: 100%;
-    display: block;
-}
-
-/* ── Annotation overlay ───────────────────────────────────── */
-.annotations-overlay {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-}
-
-.annotation {
-    position: absolute;
-    pointer-events: none;
-    max-width: 160px;
-    transition: opacity 0.4s;
-}
-
-/* Left side annotations — right-aligned text, line goes right */
-.annotation--left-top,
-.annotation--left,
-.annotation--left-bottom {
-    left: 24px;
-    text-align: right;
-}
-
-.annotation--left-top {
-    top: 28%;
-}
-.annotation--left {
-    top: 50%;
-    transform: translateY(-50%);
-}
-.annotation--left-bottom {
-    bottom: 24%;
-}
-
-/* Right side annotations — left-aligned text, line goes left */
-.annotation--right-top,
-.annotation--right,
-.annotation--right-bottom {
-    right: 24px;
-    text-align: left;
-}
-
-.annotation--right-top {
-    top: 28%;
-}
-.annotation--right {
-    top: 50%;
-    transform: translateY(-50%);
-}
-.annotation--right-bottom {
-    bottom: 24%;
-}
-
-/* Hairline connector: left annotations extend a line to the right */
-.annotation--left-top::after,
-.annotation--left::after,
-.annotation--left-bottom::after {
-    content: "";
-    display: block;
-    width: 32px;
-    height: 1px;
-    background: var(--text-muted);
-    margin-left: auto;
-    margin-top: 6px;
-    opacity: 0.5;
-}
-
-/* Hairline connector: right annotations extend a line to the left */
-.annotation--right-top::after,
-.annotation--right::after,
-.annotation--right-bottom::after {
-    content: "";
-    display: block;
-    width: 32px;
-    height: 1px;
-    background: var(--text-muted);
-    margin-top: 6px;
-    opacity: 0.5;
-}
-
-.ann-label {
-    display: block;
-    font-size: 0.65rem;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--text);
-}
-
-.ann-desc {
-    display: block;
-    font-size: 0.72rem;
-    color: var(--text-muted);
-    line-height: 1.4;
-    margin-top: 2px;
-}
-
-/* ── Viewer controls ──────────────────────────────────────── */
-.viewer-controls {
-    display: flex;
-    gap: 6px;
-    padding: 10px 16px;
-    border-top: 1px solid var(--border);
-    background: var(--bg);
-}
-
-.style-btn {
-    padding: 4px 12px;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    background: transparent;
-    color: var(--text-muted);
-    font-size: 0.72rem;
-    font-weight: 500;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: all 0.15s;
-}
-
-.style-btn:hover {
-    color: var(--text);
-    border-color: rgba(0, 0, 0, 0.25);
-}
-.style-btn.active {
-    color: var(--accent-text);
-    border-color: var(--accent);
-}
-
-.view-tabs {
-    display: flex;
-    gap: 6px;
-    padding: 8px 16px;
-    border-top: 1px solid var(--border);
-    background: var(--bg);
-    flex-wrap: wrap;
-    min-height: 0;
-}
-
-.view-tabs:empty {
-    display: none;
-}
-
-.view-tab {
-    padding: 3px 12px;
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    background: transparent;
-    color: var(--text-muted);
-    font-size: 0.7rem;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: all 0.15s;
-}
-
-.view-tab:hover {
-    color: var(--text);
-}
-.view-tab.active {
-    color: var(--accent-text);
-    border-color: var(--accent);
-}
-
-/* ── Chapter ──────────────────────────────────────────────── */
-.notebook-chapter + .notebook-chapter {
-    margin-top: 0;
-}
-
-/* Chapter title card: transparent full-viewport "slide" — viewer shows through */
-.chapter-title-card {
-    min-height: calc(100vh - var(--header-h));
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: center;
-    text-align: center;
-    padding: calc(var(--header-h) + 72px) 40px 0;
-    scroll-snap-align: start;
-    pointer-events: none;
-}
-
-.chapter-title-text {
-    pointer-events: auto;
-}
-
-.chapter-eyebrow {
-    font-size: 0.65rem;
-    font-weight: 700;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--accent-text);
-    margin-bottom: 8px;
-}
-
-.chapter-title-card h2 {
-    font-size: 2.4rem;
-    font-weight: 800;
-    font-style: italic;
-    letter-spacing: -0.02em;
-    line-height: 1;
-    color: var(--text);
-    text-transform: uppercase;
-}
-
-.chapter-description {
-    margin-top: 12px;
-    font-size: 0.85rem;
-    color: var(--text-muted);
-    line-height: 1.65;
-}
-
-/* ── Section (frosted card) ───────────────────────────────── */
-.notebook-section {
-    min-height: calc(100vh - var(--header-h));
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: flex-end;
-    scroll-snap-align: start;
-    padding: 48px 80px;
-}
-
-.notebook-section--left   { align-items: flex-start; }
-.notebook-section--center { align-items: center; }
-
 /* ── Scroll hints (prev / next chevrons) ──────────────────── */
 .scroll-hint {
     position: fixed;
@@ -412,6 +188,25 @@ body {
 }
 .scroll-hint--next::after { transform: rotate(45deg) translate(-3px, -3px); }
 
+/* ── Chapter ──────────────────────────────────────────────── */
+.notebook-chapter + .notebook-chapter {
+    margin-top: 0;
+}
+
+/* ── Section (frosted card) ───────────────────────────────── */
+.notebook-section {
+    min-height: calc(100vh - var(--header-h));
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-end;
+    scroll-snap-align: start;
+    padding: 48px 80px;
+}
+
+.notebook-section--left   { align-items: flex-start; }
+.notebook-section--center { align-items: center; }
+
 .section-card {
     width: 100%;
     max-width: 560px;
@@ -436,21 +231,6 @@ body {
     text-transform: uppercase;
     color: var(--text);
     margin-bottom: 6px;
-}
-
-.section-tagline {
-    font-size: 1.15rem;
-    font-weight: 700;
-    font-style: italic;
-    color: var(--text);
-    margin-bottom: 12px;
-    line-height: 1.2;
-}
-
-.section-description {
-    font-size: 0.82rem;
-    color: var(--text-muted);
-    line-height: 1.75;
 }
 
 /* ── Features (rendered markdown) ────────────────────────── */
@@ -487,30 +267,6 @@ body {
     margin: 4px 0;
 }
 
-/* ── Images ───────────────────────────────────────────────── */
-.section-images {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 10px;
-    margin-top: 20px;
-}
-
-.section-image img {
-    width: 100%;
-    border-radius: 3px;
-    object-fit: cover;
-    aspect-ratio: 4/3;
-    background: rgba(0, 0, 0, 0.05);
-    display: block;
-}
-
-.section-image figcaption {
-    font-size: 0.7rem;
-    color: var(--text-muted);
-    margin-top: 5px;
-    line-height: 1.35;
-}
-
 /* ── Title page ───────────────────────────────────────────── */
 .notebook-title-page {
     min-height: calc(100vh - var(--header-h));
@@ -521,6 +277,26 @@ body {
     scroll-snap-align: start;
     padding: 48px 80px;
     pointer-events: none;
+}
+
+.chapter-eyebrow {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent-text);
+    margin-bottom: 8px;
+}
+
+.title-page-name {
+    font-size: 3rem;
+    font-weight: 800;
+    font-style: italic;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    text-transform: uppercase;
+    color: var(--text);
+    margin-bottom: 24px;
 }
 
 /* ── Table of Contents ────────────────────────────────────── */
@@ -548,17 +324,6 @@ body {
     border: 1px solid var(--border);
     border-radius: 4px;
     pointer-events: auto;
-}
-
-.title-page-name {
-    font-size: 3rem;
-    font-weight: 800;
-    font-style: italic;
-    letter-spacing: -0.03em;
-    line-height: 1;
-    text-transform: uppercase;
-    color: var(--text);
-    margin-bottom: 24px;
 }
 
 .toc-title {
@@ -618,4 +383,3 @@ body {
 .toc-section-link:hover {
     color: var(--text);
 }
-

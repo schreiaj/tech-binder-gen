@@ -306,7 +306,7 @@ class NotebookViewer extends HTMLElement {
   _setupRenderer() {
     const r = this.renderer;
     r.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    r.toneMapping = THREE.ACESFilmicToneMapping;
+    r.toneMapping = THREE.CineonToneMapping;
     r.toneMappingExposure = 1.0;
     r.outputColorSpace = THREE.SRGBColorSpace;
   }

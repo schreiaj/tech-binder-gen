@@ -45,12 +45,15 @@ Place images in `assets/images/`.
 
 ## Configuration
 
-Each YAML file in `pages/` generates a corresponding HTML file at the project root:
+Every YAML file in `pages/` becomes its own standalone HTML page. The filename is the URL:
 
-| File | Output |
-|------|--------|
-| `pages/index.yaml` | `index.html` |
-| `pages/autonomous.yaml` | `autonomous.html` |
+| File | URL |
+|------|-----|
+| `pages/index.yaml` | `/index.html` (your root page) |
+| `pages/autonomous.yaml` | `/autonomous.html` |
+| `pages/mechanical.yaml` | `/mechanical.html` |
+
+Each page is fully independent — its own model, camera position, chapters, and annotations. A common pattern is one page per notebook section or per subsystem, linked together via a shared team site.
 
 To get started, copy `config.example.yaml` into `pages/`:
 
@@ -58,7 +61,7 @@ To get started, copy `config.example.yaml` into `pages/`:
 cp config.example.yaml pages/index.yaml
 ```
 
-Then edit `pages/index.yaml` and run `node scripts/build.js` (or `npm run dev`) to generate the HTML files.
+Then edit `pages/index.yaml` and run `node scripts/build.js` (or `npm run dev`) to generate the HTML files. Add more YAML files to `pages/` at any time — each one generates an additional page on the next build.
 
 ### Full config reference
 
@@ -122,7 +125,7 @@ chapters:
 
 ### How the YAML is processed
 
-1. **Build script** (`scripts/build.js`) loads `config.yaml` with `js-yaml`, normalizes the data, and renders `templates/default/layout.hbs` + `templates/default/section.hbs` via Handlebars into `index.html`.
+1. **Build script** (`scripts/build.js`) loads every `*.yaml` in `pages/` with `js-yaml`, normalizes the data, and renders the template specified by the `template` key (default: `templates/default/`) via Handlebars into a matching HTML file at the project root.
 2. **Chapter normalization** — each chapter gets an auto-generated `id` (`chapter-0`, `chapter-1`, …). Section `id` comes from the config field if present, otherwise `section-{ci}-{si}`.
 3. **Annotation normalization** — section annotations without an explicit `target` default to `displayedNodes[0]`. Root annotations without a `target` anchor to the model's bounding-box center at runtime.
 4. **Features** — each string in `features` is parsed as GitHub Flavored Markdown by [marked](https://marked.js.org) and injected as raw HTML into the section card.
@@ -167,6 +170,25 @@ Positions follow a clock face (0 = 12 o'clock, increasing clockwise). The viewer
 | `9`   | 9 o'clock (left) |
 | `10`–`11` | Upper left |
 
+## Theming
+
+Brand colors live in `assets/css/overrides.css`. Edit that file — never the template CSS — so your customizations survive template updates.
+
+```css
+/* assets/css/overrides.css */
+:root {
+    --brand-bg:          #f4f6fb;      /* page & card background */
+    --brand-primary:     #0d1b2a;      /* main text */
+    --brand-secondary:   #4a5568;      /* muted / secondary text */
+    --brand-accent:      #f6c90e;      /* decorative accent (annotation lines, borders) */
+    --brand-accent-text: #7a6000;      /* text-safe accent (headings, active nav links) */
+}
+```
+
+Uncomment only the variables you want to change; any left commented out fall back to the layout defaults.
+
+`--brand-accent` also drives the 3D viewer's blueprint grid color and annotation SVG lines, so it affects both the page chrome and the model view.
+
 ## Development
 
 ```bash
@@ -201,7 +223,7 @@ Output goes to `book/<page-title>.pdf`. The script runs a full build first, serv
 A workflow is included at `.github/workflows/deploy.yml`. To enable it:
 
 1. In your repo settings, go to **Pages → Source** and select **GitHub Actions**.
-2. Commit your `config.yaml`. If it isn't committed, the workflow falls back to `config.example.yaml`.
+2. Commit your YAML files in `pages/`. If none exist, the workflow falls back to `config.example.yaml`.
 3. Push to `main` — the site builds and deploys automatically.
 
 ## `<notebook-viewer>` web component
@@ -251,6 +273,7 @@ Nodes not in `displayedNodes` are dimmed (desaturated + semi-transparent) with a
 ├── templates/
 │   └── default/
 │       ├── layout.hbs            # page shell (header, two-pane layout, annotation loop)
+│       ├── layout.css            # layout styles (do not edit — use assets/css/overrides.css)
 │       └── section.hbs           # per-section card partial
 ├── src/
 │   ├── viewer.js                 # <notebook-viewer> web component (Three.js + anime.js)
@@ -260,7 +283,7 @@ Nodes not in `displayedNodes` are dimmed (desaturated + semi-transparent) with a
 │   └── vendor/
 │       └── datastar.js           # Datastar library (served as-is)
 ├── assets/
-│   ├── css/notebook.css          # source stylesheet (edit this)
+│   ├── css/overrides.css         # brand color overrides (edit this — see Theming)
 │   ├── images/                   # your photos
 │   └── models/                   # your decimated GLB
 ├── scripts/
