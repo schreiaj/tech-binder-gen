@@ -6,7 +6,8 @@
   <title>{{name}}</title>
   <link rel="stylesheet" href="assets/css/notebook.css">
 </head>
-<body data-signals="{currentSection:'', viewerSide:''}">
+<body data-signals="{currentSection:'', viewerSide:''}"
+  data-on:keydown="if(['ArrowDown','PageDown'].includes(evt.key)){evt.preventDefault();$scrollPane.scrollBy({top:window.innerHeight,behavior:'smooth'})}if(['ArrowUp','PageUp'].includes(evt.key)){evt.preventDefault();$scrollPane.scrollBy({top:-window.innerHeight,behavior:'smooth'})}">
   <header class="notebook-header">
     <div class="header-logo">
       {{#if logo}}<img src="{{logo}}" alt="{{name}}" class="team-logo">{{/if}}
@@ -24,7 +25,7 @@
   </header>
 
   <main class="notebook-main">
-    <div class="scroll-pane">
+    <div class="scroll-pane" data-ref="scrollPane">
 
       <div class="notebook-title-page">
         {{#if teamLabel}}<p class="chapter-eyebrow">{{teamLabel}}</p>{{/if}}
