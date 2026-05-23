@@ -22,42 +22,92 @@ annotations:
     position: 5
 
 chapters:
-  - Mechanical:
+  - Chassis:
       sections:
-        - Drivetrain: # title of this section
-            id: drivebase #anchor id
+        - Overview:
+            id: chassis-overview
             displayedNodes: ["01_Chassis_<1>"]
             facing: NE
             elevation: UPPER
             side: left
-            annotations:
-              - label: "6WD"
-                description: "Four Kraken X44s"
-                position: 11
-            images:
-              - src: assets/images/drivetrain_front.jpg
-                title: "Gearbox Assembly"
-                description: "Exploded view of the gearbox"
             features:
               - |
-                Test Content
-                > First stuff
+                **AndyMark AM14U6** is part of the Kit of Parts — well-tested and reliable.
               - |
-                Second Feature
-                > Some more neat stuff
-        - Intake: # title of this section
-            id: intake #anchor id
+                **6" rubber treaded wheels** provide good traction with field carpet. The center wheel sits **0.14" lower** than the front and rear wheels (drop center), making it easier to turn on the spot and make small adjustments when picking up and scoring game pieces.
+        - Size:
+            id: chassis-size
+            displayedNodes: ["01_Chassis_<1>"]
+            facing: N
+            elevation: UPPER
+            side: left
+            features:
+              - |
+                **"Square" chassis configuration** was chosen to retain compatibility with the FIRST KitBot, with plenty of room to mount mechanisms and electronics.
+              - |
+                **KitBot chassis cutout** is reused, requiring two **5" sections** cut out of one end plate.
+
+  - Intake:
+      sections:
+        - Intake:
+            id: intake
             displayedNodes: ["03_Intake_<1>"]
             facing: N
             elevation: MIDDLE
-            annotations:
-              - label: "2x Krakens"
-                description: "More Power!"
-                position: 2
             features:
               - |
-                Test Content
-                > First stuff
+                **Two NEO motors** provide power for reliable game object collection.
               - |
-                Second Feature
-                > Some more neat stuff
+                **Compliant wheels** flex on contact, allowing easy intaking of game objects.
+
+  - Hopper:
+      sections:
+        - Hopper:
+            id: hopper
+            displayedNodes: ["04_Hopper_<1>"]
+            facing: N
+            elevation: MIDDLE
+            features:
+              - |
+                **Polycarbonate panels** corral game objects and keep them contained.
+              - |
+                **Transparent hopper** provides visual feedback of how many game pieces remain.
+
+  - Launcher:
+      sections:
+        - Launcher:
+            id: launcher
+            displayedNodes: ["05_Launcher_<1>"]
+            facing: N
+            elevation: MIDDLE
+            features:
+              - |
+                **2 CIM motors** enable rapid spin-up for consistent launches.
+              - |
+                **Fixed angle hood** is rigid and simple to construct, eliminating complexity.
+
+  - Climber:
+      sections:
+        - Climber:
+            id: climber
+            displayedNodes: ["06_Climber_<1>"]
+            facing: N
+            elevation: MIDDLE
+            features:
+              - |
+                **Chain driven** mechanism is simple, lightweight, and mechanically efficient.
+
+  - Electronics:
+      sections:
+        - Electronics:
+            id: electronics
+            displayedNodes: ["07_Electronics_<1>"]
+            facing: N
+            elevation: UPPER
+            features:
+              - |
+                **Kit of Parts wiring** — the electrical system can be assembled using wire and connectors included in the KoP, with electrical components from the Rookie KoP or retained from previous seasons.
+              - |
+                **One additional motor controller** (Spark MAX or equivalent) is required beyond the KoP to power all eight Everybot motors.
+              - |
+                **Flexible control system support** — compatible with any legal combination of REV and CTRE components. Rookie teams receive a full REV control system; this guide focuses on that configuration.
