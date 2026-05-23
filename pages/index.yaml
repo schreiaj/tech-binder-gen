@@ -39,8 +39,8 @@ chapters:
             id: chassis-size
             displayedNodes: ["01_Chassis_<1>"]
             facing: N
-            elevation: UPPER
-            side: left
+            elevation: TOP
+            side: right
             features:
               - |
                 **"Square" chassis configuration** was chosen to retain compatibility with the FIRST KitBot, with plenty of room to mount mechanisms and electronics.
@@ -49,11 +49,11 @@ chapters:
 
   - Intake:
       sections:
-        - Intake:
-            id: intake
+        - Overview:
+            id: intake_overview
             displayedNodes: ["03_Intake_<1>"]
-            facing: N
-            elevation: MIDDLE
+            facing: NW
+            elevation: UPPER
             features:
               - |
                 **Two NEO motors** provide power for reliable game object collection.
@@ -62,11 +62,11 @@ chapters:
 
   - Hopper:
       sections:
-        - Hopper:
-            id: hopper
+        - Overview:
+            id: hopper_overview
             displayedNodes: ["04_Hopper_<1>"]
-            facing: N
-            elevation: MIDDLE
+            facing: SW
+            elevation: UPPER
             features:
               - |
                 **Polycarbonate panels** corral game objects and keep them contained.
@@ -75,11 +75,11 @@ chapters:
 
   - Launcher:
       sections:
-        - Launcher:
-            id: launcher
+        - Overview:
+            id: launcher_overview
             displayedNodes: ["05_Launcher_<1>"]
-            facing: N
-            elevation: MIDDLE
+            facing: SW
+            elevation: UPPER
             features:
               - |
                 **2 CIM motors** enable rapid spin-up for consistent launches.
@@ -88,19 +88,19 @@ chapters:
 
   - Climber:
       sections:
-        - Climber:
-            id: climber
+        - Overview:
+            id: climber_overview
             displayedNodes: ["06_Climber_<1>"]
-            facing: N
-            elevation: MIDDLE
+            facing: SW
+            elevation: UPPER
             features:
               - |
                 **Chain driven** mechanism is simple, lightweight, and mechanically efficient.
 
   - Electronics:
       sections:
-        - Electronics:
-            id: electronics
+        - Overview:
+            id: electronics_overview
             displayedNodes: ["07_Electronics_<1>"]
             facing: N
             elevation: UPPER

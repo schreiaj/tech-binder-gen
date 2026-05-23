@@ -10,7 +10,7 @@
 <body data-signals="{currentSection:'', viewerSide:''}"
   data-on:keydown="if(['ArrowDown','PageDown'].includes(evt.key)){evt.preventDefault();$scrollPane.scrollBy({top:window.innerHeight,behavior:'smooth'})}if(['ArrowUp','PageUp'].includes(evt.key)){evt.preventDefault();$scrollPane.scrollBy({top:-window.innerHeight,behavior:'smooth'})}">
   <header class="notebook-header">
-    <div class="header-logo">
+    <div class="header-logo" data-on:click="$scrollPane.scrollTo({top:0,behavior:'smooth'});$viewer.dispatchEvent(new CustomEvent('setview',{detail:{facing:'{{facing}}',elevation:'{{elevation}}',displayedNodes:[]}}))" style="cursor:pointer">
       {{#if logo}}<img src="{{logo}}" alt="{{name}}" class="team-logo">{{/if}}
       <span class="logo-text">
         <strong>{{logoWordmark}}</strong>
@@ -20,7 +20,8 @@
     </div>
     <nav class="chapter-nav">
       {{#each chapters}}
-        <a href="#{{id}}" class="nav-link">{{name}}</a>
+        <a href="#{{id}}" class="nav-link"
+          data-on:click__prevent="document.getElementById('{{id}}').scrollIntoView({behavior:'smooth'})">{{name}}</a>
       {{/each}}
     </nav>
   </header>
@@ -28,24 +29,27 @@
   <main class="notebook-main">
     <div class="scroll-pane" data-ref="scrollPane">
 
-      <div class="notebook-title-page">
+      <div class="notebook-title-page"
+        data-on-intersect__full="$currentSection='';$viewer.dispatchEvent(new CustomEvent('setview',{detail:{facing:'{{facing}}',elevation:'{{elevation}}',displayedNodes:[]}}))">
         {{#if teamLabel}}<p class="chapter-eyebrow">{{teamLabel}}</p>{{/if}}
         <h1 class="title-page-name">{{logoWordmark}}</h1>
       </div>
 
       <div class="notebook-toc notebook-toc--{{tocSide}}"
         data-on-intersect__half="$viewerSide='{{tocSide}}'"
-        data-on-intersect__full="$currentSection='toc'"
-        data-on-intersect__exit="$viewerSide='';$currentSection=''"
+        data-on-intersect__full="$currentSection='toc';$viewer.dispatchEvent(new CustomEvent('setview',{detail:{facing:'{{facing}}',elevation:'{{elevation}}',displayedNodes:[]}}));"
+        data-on-intersect__exit="$viewerSide=''"
       >
         <div class="toc-card">
           <h2 class="toc-title">Contents</h2>
           {{#each chapters}}
             <div class="toc-chapter">
-              <a href="#{{id}}" class="toc-chapter-link">{{name}}</a>
+              <a href="#{{id}}" class="toc-chapter-link"
+                data-on:click__prevent="document.getElementById('{{id}}').scrollIntoView({behavior:'smooth'})">{{name}}</a>
               <ul class="toc-sections">
                 {{#each sections}}
-                  <li><a href="#{{id}}" class="toc-section-link">{{name}}</a></li>
+                  <li><a href="#{{id}}" class="toc-section-link"
+                    data-on:click__prevent="document.getElementById('{{id}}').scrollIntoView({behavior:'smooth'})">{{name}}</a></li>
                 {{/each}}
               </ul>
             </div>
