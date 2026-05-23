@@ -133,7 +133,7 @@ chapters:
 
 ### Finding node names
 
-Open your GLB in a GLTF viewer (e.g. [gltf.report](https://gltf.report)) and inspect the scene hierarchy. Node names must match exactly, including any `<1>` instance suffixes added by some CAD exporters.
+Open [example.html](http://localhost:5173/example.html) in dev mode (`npm run dev`) and drag your GLB onto the page. The Node Inspector panel lists the scene hierarchy so you can copy exact node names. Node names must match exactly, including any `<1>` instance suffixes added by some CAD exporters.
 
 ### `facing` reference
 

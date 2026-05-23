@@ -20,6 +20,11 @@ function getPageInputs() {
 export default defineConfig({
   base: "./",
   publicDir: path.resolve(__dirname, "public"),
+  server: {
+    watch: {
+      ignored: [path.resolve(__dirname, "example.html")],
+    },
+  },
   build: {
     outDir: path.resolve(__dirname, "dist"),
     emptyOutDir: true,
