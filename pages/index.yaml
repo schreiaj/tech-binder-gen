@@ -29,6 +29,7 @@ chapters:
             displayedNodes: ["01_Chassis_<1>"]
             facing: NE
             elevation: UPPER
+            side: left
             annotations:
               - label: "6WD"
                 description: "Four Kraken X44s"

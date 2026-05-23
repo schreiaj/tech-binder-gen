@@ -1,6 +1,7 @@
-<section id="{{id}}" class="notebook-section"
+<section id="{{id}}" class="notebook-section{{#if side}} notebook-section--{{side}}{{/if}}"
+  data-on-intersect__half="$viewerSide='{{side}}'"
   data-on-intersect__full__debounce.50ms="{{setviewExpr}}"
-  data-on-intersect__exit__debounce.50ms="$currentSection='';$viewer.dispatchEvent(new CustomEvent('showmeshes',{detail:{nodes:[]}}))"
+  data-on-intersect__exit__debounce.50ms="$viewerSide=''; $currentSection='';$viewer.dispatchEvent(new CustomEvent('showmeshes',{detail:{nodes:[]}}))"
   >
   <div class="section-card">
     <h3 class="section-title">{{chapterName}}:{{name}}</h3>

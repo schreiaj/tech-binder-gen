@@ -115,7 +115,12 @@ body {
     position: absolute;
     inset: 0;
     top: var(--header-h);
+    will-change: transform;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+.viewer-pane--left  { transform: translateX(20%); }
+.viewer-pane--right { transform: translateX(-20%); }
 
 .viewer-wrapper {
     position: relative;
@@ -358,13 +363,13 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    align-items: flex-start;
+    align-items: flex-end;
     scroll-snap-align: start;
     padding: 48px 80px;
 }
 
+.notebook-section--left   { align-items: flex-start; }
 .notebook-section--center { align-items: center; }
-.notebook-section--right  { align-items: flex-end; }
 
 /* ── Scroll hints (prev / next chevrons) ──────────────────── */
 .scroll-hint {
@@ -524,11 +529,14 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    align-items: flex-start;
+    align-items: flex-end;
     scroll-snap-align: start;
     padding: 48px 80px;
     pointer-events: none;
 }
+
+.notebook-toc--left   { align-items: flex-start; }
+.notebook-toc--center { align-items: center; }
 
 .toc-card {
     width: 100%;

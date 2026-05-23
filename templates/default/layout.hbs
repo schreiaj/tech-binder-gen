@@ -6,7 +6,7 @@
   <title>{{name}}</title>
   <link rel="stylesheet" href="assets/css/notebook.css">
 </head>
-<body data-signals="{currentSection:''}">
+<body data-signals="{currentSection:'', viewerSide:''}">
   <header class="notebook-header">
     <div class="header-logo">
       {{#if logo}}<img src="{{logo}}" alt="{{name}}" class="team-logo">{{/if}}
@@ -31,7 +31,11 @@
         <h1 class="title-page-name">{{logoWordmark}}</h1>
       </div>
 
-      <div class="notebook-toc">
+      <div class="notebook-toc notebook-toc--{{tocSide}}"
+        data-on-intersect__half="$viewerSide='{{tocSide}}'"
+        data-on-intersect__full="$currentSection='toc'"
+        data-on-intersect__exit="$viewerSide='';$currentSection=''"
+      >
         <div class="toc-card">
           <h2 class="toc-title">Contents</h2>
           {{#each chapters}}
@@ -57,7 +61,8 @@
 
     </div>
 
-    <div class="viewer-pane">
+    <div class="viewer-pane"
+      data-class="{'viewer-pane--left': $viewerSide==='left', 'viewer-pane--right': $viewerSide==='right'}">
       <div class="viewer-wrapper">
         <notebook-viewer id="viewer" data-ref="viewer" src="{{model}}"
           facing="{{facing}}" elevation="{{elevation}}">

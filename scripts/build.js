@@ -38,6 +38,7 @@ Handlebars.registerHelper("setviewExpr", function () {
 // ── Per-page normalization ───────────────────────────────────────────────────
 function normalizePage(config) {
   config.annotations = config.annotations ?? [];
+  config.tocSide = config["toc-alignment"] ?? config.tocAlignment ?? "right";
 
   config.chapters = (config.chapters ?? []).map((chapterObj, ci) => {
     const [chapterName, chapterData] = Object.entries(chapterObj)[0];
@@ -51,6 +52,7 @@ function normalizePage(config) {
         chapterName,
         chapterId: `chapter-${ci}`,
         id: `section-${ci}-${si}`,
+        side: "right",
         ...sectionData,
         annotations,
         features,
